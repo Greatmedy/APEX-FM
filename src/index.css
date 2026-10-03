@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; --safe-b: env(safe-area-inset-bottom, 0px); }
+html, body, #root { min-height: 100%; }
+body {
+  margin: 0; font-family: 'Manrope', system-ui, sans-serif; color: #fff; background-color: #07111F;
+  background-image:
+    radial-gradient(1200px 600px at 85% -10%, rgba(20,241,149,.10), transparent 60%),
+    radial-gradient(900px 700px at -10% 30%, rgba(226,182,87,.08), transparent 60%),
+    linear-gradient(180deg, #07111F 0%, #0A1730 60%, #07111F 100%);
+  background-attachment: fixed; overflow-x: hidden; -webkit-font-smoothing: antialiased;
+}
+/* subtle pitch-line backdrop used on auth screens */
+.pitch-bg { position: relative; isolation: isolate; }
+.pitch-bg::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; opacity: .5; pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0 118px, rgba(255,255,255,.07) 118px 120px, transparent 120px),
+    linear-gradient(90deg, transparent 49.8%, rgba(255,255,255,.07) 49.8% 50.2%, transparent 50.2%),
+    repeating-linear-gradient(90deg, rgba(20,241,149,.035) 0 90px, transparent 90px 180px);
+}
+.glass { background: rgba(255,255,255,.08); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,.15); border-radius: 1.1rem; }
+.glass-deep { background: rgba(14,28,51,.72); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid rgba(255,255,255,.12); border-radius: 1.1rem; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 44px; padding: .55rem 1.1rem; border-radius: .8rem; font-weight: 700; font-size: .92rem; transition: transform .12s, background .15s, opacity .15s; cursor: pointer; border: 1px solid transparent; user-select: none; }
+.btn:active { transform: scale(.97); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn-gold { background: #E2B657; color: #07111F; box-shadow: 0 6px 24px rgba(226,182,87,.22); }
+.btn-gold:hover:not(:disabled) { background: #edc56d; }
+.btn-ghost { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.15); color: #fff; }
+.btn-ghost:hover:not(:disabled) { background: rgba(255,255,255,.14); }
+.btn-pitch { background: #14F195; color: #07111F; }
+.btn-danger { background: rgba(225,29,72,.16); border-color: rgba(225,29,72,.6); color: #fecdd3; }
+.btn-danger:hover:not(:disabled) { background: #E11D48; color: #fff; }
+.input { width: 100%; min-height: 46px; padding: .6rem .9rem; border-radius: .8rem; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.18); color: #fff; font-size: 1rem; outline: none; transition: border .15s, box-shadow .15s; }
+.input::placeholder { color: rgba(203,213,225,.55); }
+.input:focus { border-color: #14F195; box-shadow: 0 0 0 3px rgba(20,241,149,.18); }
+select.input option { background: #0E1C33; color: #fff; }
+:focus-visible { outline: 2px solid #14F195; outline-offset: 2px; }
+.label { display: block; font-size: .8rem; font-weight: 600; color: #cbd5e1; margin-bottom: .35rem; }
+.num { font-family: 'Oswald', 'Barlow Condensed', sans-serif; font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+.scroll-y { overflow-y: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.25) transparent; }
+.chip { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; border-radius: 6px; font-size: .7rem; font-weight: 800; }
+.pb-nav { padding-bottom: calc(76px + var(--safe-b)); }
+@media (min-width: 1024px) { .pb-nav { padding-bottom: 2rem; } }
+@keyframes pulse-dot { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.7); } }
+.live-dot { width: 8px; height: 8px; border-radius: 99px; background: #14F195; box-shadow: 0 0 10px #14F195; animation: pulse-dot 1.4s infinite; }
+@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
