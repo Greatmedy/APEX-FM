@@ -26,6 +26,7 @@ export default function Login() {
       <form onSubmit={submit} className="space-y-4">
         <Field label="Email or username"><input className="input" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required /></Field>
         <Field label="Password"><input className="input" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></Field>
+        <div className="text-right -mt-2"><Link to="/forgot-password" className="text-sm text-gold font-bold">Forgot password?</Link></div>
         {err && <p className="text-sm text-rose-300" role="alert">{err}</p>}
         <button className="btn btn-gold w-full" disabled={busy}>{busy ? 'Signing in' : 'Sign in'}</button>
       </form>

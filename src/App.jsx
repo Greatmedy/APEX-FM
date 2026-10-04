@@ -13,6 +13,8 @@ import Fixtures from './pages/Fixtures';
 import Match from './pages/Match';
 import Admin from './pages/Admin';
 import NotFound from './pages/NotFound';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 function Guard({ children, adminOnly }) {
   const { user, loading } = useAuth();
@@ -36,6 +38,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Public><Login /></Public>} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/signup" element={user && user.onboarding?.step !== 'done' && user.role !== 'admin' ? <Signup /> : <Public><Signup /></Public>} />
       <Route element={<Guard><Layout /></Guard>}>
         <Route path="/home" element={<Home />} />
