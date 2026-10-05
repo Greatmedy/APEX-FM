@@ -112,6 +112,29 @@ function Settings({ ov, reload }) {
   );
 }
 
+function SeasonDate({ ov, reload }) {
+  const toast = useToast();
+  const [date, setDate] = useState('');
+  const [busy, setBusy] = useState(false);
+  const go = async () => {
+    if (!window.confirm(`Move the whole season to start on ${date} at 20:00 WAT?`)) return;
+    setBusy(true);
+    try {
+      const { data } = await api.post('/admin/season/shift', { startsAt: `${date}T19:00:00Z` });
+      toast(`Season moved. Kickoff ${fmtWAT(data.startsAt)}`, 'success');
+      reload();
+    } catch (e) { toast(errMsg(e), 'error'); } finally { setBusy(false); }
+  };
+  return (
+    <div className="glass p-5 max-w-xl space-y-3">
+      <p className="font-display text-lg">Move season start</p>
+      <p className="text-sm text-slate-300">Current start: <b>{ov.season && fmtWAT(ov.season.startsAt)}</b>. Only works before any match has been played. Pick a Monday.</p>
+      <input type="date" className="input" value={date} onChange={(e) => setDate(e.target.value)} aria-label="New start date" />
+      <button className="btn btn-gold" disabled={busy || !date} onClick={go}>{busy ? 'Moving' : 'Move season'}</button>
+    </div>
+  );
+}
+
 export default function Admin() {
   const [ov, setOv] = useState(null);
   const [err, setErr] = useState('');
@@ -127,7 +150,7 @@ export default function Admin() {
       {tab === 'overview' && <Overview ov={ov} reload={load} />}
       {tab === 'players' && <Players />}
       {tab === 'fixtures' && <Fixtures />}
-      {tab === 'settings' && <Settings ov={ov} reload={load} />}
+      {tab === 'settings' && <div className="space-y-4"><Settings ov={ov} reload={load} /><SeasonDate ov={ov} reload={load} /></div>}
     </div>
   );
 }
