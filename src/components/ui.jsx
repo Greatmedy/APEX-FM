@@ -35,7 +35,7 @@ export function Field({ label, error, children, hint }) {
     </label>
   );
 }
-export function Modal({ open, onClose, title, children, wide }) {
+export function Modal({ open, onClose, title, children, wide, footer }) {
   useEffect(() => {
     if (!open) return;
     const k = (e) => e.key === 'Escape' && onClose();
@@ -46,14 +46,15 @@ export function Modal({ open, onClose, title, children, wide }) {
   return (
     <AnimatePresence>
       {open && (
-        <motion.div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-ink/80 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+        <motion.div className="modal-root fixed inset-0 z-[90] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-ink/80 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
           <motion.div role="dialog" aria-modal="true" aria-label={title} initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }}
-            className={`glass-deep w-full ${wide ? 'sm:max-w-4xl' : 'sm:max-w-lg'} max-h-[92vh] flex flex-col rounded-b-none sm:rounded-b-[1.1rem]`}>
+            className={`glass-deep modal-panel w-full ${wide ? 'sm:max-w-4xl' : 'sm:max-w-lg'} flex flex-col rounded-b-none sm:rounded-b-[1.1rem]`}>
             <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-white/10">
               <h2 className="font-display text-xl tracking-wide truncate">{title}</h2>
               <button className="btn btn-ghost !min-h-[40px] !px-3" onClick={onClose} aria-label="Close">Close</button>
             </div>
-            <div className="scroll-y p-5">{children}</div>
+            <div className="scroll-y p-5 flex-1 min-h-0">{children}</div>
+            {footer && <div className="shrink-0 border-t border-white/10 p-3 sm:p-4 modal-footer">{footer}</div>}
           </motion.div>
         </motion.div>
       )}

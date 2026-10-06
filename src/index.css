@@ -47,3 +47,8 @@ select.input option { background: #0E1C33; color: #fff; }
 @keyframes pulse-dot { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.7); } }
 .live-dot { width: 8px; height: 8px; border-radius: 99px; background: #14F195; box-shadow: 0 0 10px #14F195; animation: pulse-dot 1.4s infinite; }
 @media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+/* Modals: size by the visible viewport so bottom actions never fall off-screen on phones */
+.modal-root { height: 100vh; height: 100dvh; }
+.modal-panel { max-height: 92vh; max-height: calc(100dvh - 1rem); }
+.modal-footer { padding-bottom: calc(.75rem + env(safe-area-inset-bottom, 0px)); }
+@media (min-width: 640px) { .modal-panel { max-height: 90vh; max-height: 90dvh; } }

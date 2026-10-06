@@ -1,0 +1,73 @@
+// Plain-English guide shown on the Tactics page for each formation.
+export const FORMATION_INFO = {
+  '4-3-3': {
+    title: 'Balanced attacking',
+    how: 'Three forwards stretch the pitch: two wide attackers and a central striker. Three midfielders, one of them holding, link defence to attack. The wingers and fullbacks supply the width.',
+    pros: ['Strong width and a constant goal threat', 'Midfield triangles make it easy to keep the ball', 'The front three can press the opposition high'],
+    cons: ['Space opens behind the fullbacks if wingers do not track back', 'Can be outnumbered in midfield by five-man midfields', 'Needs quick, fit wide players'],
+    styles: ['possession', 'press'], needs: 'Quick wingers and a strong holding midfielder.',
+  },
+  '4-2-3-1': {
+    title: 'Modern all-rounder',
+    how: 'Two holding midfielders protect the back four. Three attacking midfielders play behind a lone striker, and the middle one is the playmaker.',
+    pros: ['Very solid cover in front of the defence', 'Smooth switch between defence and attack', 'A creative number 10 can unlock tight games'],
+    cons: ['The lone striker can be isolated', 'Relies on one top-quality playmaker', 'Wide midfielders must work hard in both directions'],
+    styles: ['balanced', 'counter'], needs: 'A strong striker and a creative playmaker.',
+  },
+  '4-4-2': {
+    title: 'The classic',
+    how: 'Two flat banks of four with two strikers up front. Simple, direct and easy to organise, with plenty of width on both flanks.',
+    pros: ['Compact and easy to understand', 'Two strikers keep the centre-backs busy', 'Strong wide play from the wide midfielders'],
+    cons: ['Outnumbered in the middle against three-man midfields', 'Less creativity between the lines', 'Strikers can be starved of service'],
+    styles: ['balanced', 'counter'], needs: 'A striker pair that link up, and hard-working wide midfielders.',
+  },
+  '3-5-2': {
+    title: 'Wing-back overload',
+    how: 'Three centre-backs sit behind a five-man midfield. The wide midfielders run the whole flank, and two strikers lead the line.',
+    pros: ['Dominates the middle of the pitch', 'Two strikers plus midfield runners in the box', 'Three centre-backs cover each other well'],
+    cons: ['Space behind the wide players on the break', 'Wide forwards can pull the back three apart', 'Very demanding on stamina'],
+    styles: ['possession', 'press'], needs: 'High-stamina wide midfielders and a ball-playing centre-back.',
+  },
+  '5-3-2': {
+    title: 'Defensive wing-backs',
+    how: 'Five defenders, with the wing-backs dropping back to defend and pushing forward when possible. Three central midfielders support two strikers on the counter.',
+    pros: ['Very hard to break down through the middle', 'Both flanks covered', 'Good outlet for fast counter-attacks'],
+    cons: ['Fewer players in midfield and attack', 'Can get pinned back for long spells', 'Creates fewer chances unless the wing-backs join in'],
+    styles: ['counter', 'park'], needs: 'Fit wing-backs and two strikers who can hold the ball up.',
+  },
+  '4-1-4-1': {
+    title: 'Compact shield',
+    how: 'One holding midfielder sits just in front of the back four. A flat line of four midfielders supports a lone striker.',
+    pros: ['Compact shape that is hard to play through', 'The anchor protects the centre-backs', 'Good defensive structure without the ball'],
+    cons: ['The lone striker is isolated', 'The anchor man is overloaded', 'Slower to build attacks'],
+    styles: ['counter', 'balanced'], needs: 'A top holding midfielder and a striker who can work alone.',
+  },
+  '3-4-3': {
+    title: 'Aggressive attack',
+    how: 'A back three, four midfielders and a front three. The team pushes high and tries to overload the opposition in the final third.',
+    pros: ['Lots of attackers in the box', 'Strong high pressing', 'Wide forwards plus wide midfielders create overloads'],
+    cons: ['Thin at the back and exposed to counter-attacks', 'Wide overloads hurt the back three', 'Needs very fit players'],
+    styles: ['press', 'possession'], needs: 'Quick centre-backs and mobile forwards.',
+  },
+  '5-4-1': {
+    title: 'The fortress',
+    how: 'Five defenders and four midfielders sit behind the ball. A single striker waits for a counter-attack.',
+    pros: ['Extremely solid and hard to score against', 'Excellent for protecting a lead', 'Clear defensive roles'],
+    cons: ['Very few chances created', 'The striker is badly isolated', 'Going a goal down is hard to recover from'],
+    styles: ['park', 'counter'], needs: 'A fast, strong lone striker.',
+  },
+  '4-3-2-1': {
+    title: 'The Christmas tree',
+    how: 'Three central midfielders, two attacking midfielders tucked inside, and one striker. It controls the centre of the pitch.',
+    pros: ['Strong control of the middle', 'Two creative players close to the striker', 'Compact and hard to pass through'],
+    cons: ['Little natural width, so the fullbacks must provide it', 'Can be squeezed by wide attackers', 'Still has a lone striker'],
+    styles: ['possession', 'balanced'], needs: 'Creative attacking midfielders and overlapping fullbacks.',
+  },
+  '4-4-1-1': {
+    title: 'Support striker',
+    how: 'A flat four-man midfield with a second forward dropping just behind the main striker. A 4-4-2 with a link player.',
+    pros: ['As solid as a 4-4-2', 'A link player between midfield and attack', 'Flexible between attack and defence'],
+    cons: ['The main striker can still be isolated', 'The second forward needs good touch and work rate', 'Less width than a front three'],
+    styles: ['balanced', 'counter'], needs: 'A clever second striker and a target-man striker.',
+  },
+};

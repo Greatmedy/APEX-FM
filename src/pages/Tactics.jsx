@@ -2,12 +2,42 @@ import { useEffect, useMemo, useState } from 'react';
 import { useClub } from '../context/ClubContext';
 import { useToast } from '../context/ToastContext';
 import api, { errMsg } from '../lib/api';
-import { FORMATIONS, FORMATION_IDS, STYLES, autoPick, teamOvr } from '../lib/formations';
+import { FORMATIONS, FORMATION_IDS, STYLES, autoPick, teamOvr, groupOf } from '../lib/formations';
+import { FORMATION_INFO } from '../lib/formationInfo';
 import { STYLE_LABEL } from '../components/util';
 import { Spinner, ErrorState } from '../components/ui';
 import PlayerPortrait from '../components/PlayerPortrait';
 
 const STYLE_HELP = { balanced: 'No bias. Solid everywhere.', possession: 'Keep the ball, fewer risks, slower tempo.', counter: 'Sit deep, hit quickly in transition.', press: 'Win it high. Costs stamina, leaves gaps.', park: 'Defend in numbers. Few chances either way.' };
+
+function FormationGuide({ id }) {
+  const info = FORMATION_INFO[id];
+  if (!info) return null;
+  const count = { DEF: 0, MID: 0, ATT: 0 };
+  FORMATIONS[id].forEach((sl) => { const g = groupOf(sl[0]); if (count[g] !== undefined) count[g]++; });
+  return (
+    <div className="mt-4 border-t border-white/10 pt-4" aria-live="polite">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <p className="font-display text-2xl text-gold num">{id}</p>
+        <p className="font-display text-lg">{info.title}</p>
+        <p className="text-xs text-slate-300 ml-auto">{count.DEF} defenders · {count.MID} midfielders · {count.ATT} attackers</p>
+      </div>
+      <p className="text-sm text-slate-200 mt-2">{info.how}</p>
+      <div className="grid sm:grid-cols-2 gap-3 mt-3">
+        <div className="rounded-xl bg-pitch/10 border border-pitch/30 p-3">
+          <p className="text-xs font-bold text-pitch mb-1">Advantages</p>
+          <ul className="text-sm space-y-1 list-disc pl-4 marker:text-pitch">{info.pros.map((t) => <li key={t}>{t}</li>)}</ul>
+        </div>
+        <div className="rounded-xl bg-danger/10 border border-danger/30 p-3">
+          <p className="text-xs font-bold text-rose-300 mb-1">Disadvantages</p>
+          <ul className="text-sm space-y-1 list-disc pl-4 marker:text-rose-300">{info.cons.map((t) => <li key={t}>{t}</li>)}</ul>
+        </div>
+      </div>
+      <p className="text-sm mt-3"><b className="text-gold">Works best with:</b> {info.styles.map((x) => STYLE_LABEL[x]).join(' or ')}. <b className="text-gold">Needs:</b> {info.needs}</p>
+      <p className="text-[11px] text-slate-400 mt-2">In APEX FM the formation sets how many defenders, midfielders and attackers you field. Their ratings drive your control, chance creation and defence, and your style of play adds its own bonus.</p>
+    </div>
+  );
+}
 
 export default function Tactics() {
   const { club, players, loading, error, refresh } = useClub();
@@ -103,8 +133,11 @@ export default function Tactics() {
 
       <div className="grid lg:grid-cols-5 gap-5">
         <div className="lg:col-span-3 space-y-4">
-          <div className="glass p-3 flex flex-wrap gap-2" role="radiogroup" aria-label="Formation">
-            {FORMATION_IDS.map((f) => <button key={f} role="radio" aria-checked={f === formation} onClick={() => changeFormation(f)} className={`btn !min-h-[44px] num text-lg ${f === formation ? 'btn-gold' : 'btn-ghost'}`}>{f}</button>)}
+          <div className="glass p-3">
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2" role="radiogroup" aria-label="Formation">
+              {FORMATION_IDS.map((f) => <button key={f} role="radio" aria-checked={f === formation} onClick={() => changeFormation(f)} className={`btn !min-h-[44px] !px-1 num text-base ${f === formation ? 'btn-gold' : 'btn-ghost'}`}>{f}</button>)}
+            </div>
+            <FormationGuide id={formation} />
           </div>
           <div className="relative rounded-2xl overflow-hidden border border-white/15" style={{ aspectRatio: '3 / 4', background: 'repeating-linear-gradient(0deg,#0d5c36 0 9.09%,#0f6a3e 9.09% 18.18%)' }}>
             <div className="absolute inset-3 border-2 border-white/60 rounded-sm pointer-events-none" />

@@ -14,13 +14,13 @@ export default function SquadModal({ templateKey, onClose, onChoose, busy }) {
   }, [templateKey]);
   const groups = data && [['Goalkeepers', ['GK']], ['Defenders', ['CB', 'LB', 'RB']], ['Midfielders', ['CDM', 'CM', 'CAM']], ['Attackers', ['LW', 'RW', 'ST']]];
   return (
-    <Modal open={!!templateKey} onClose={onClose} title={data ? `${data.club.name} squad` : 'Squad'} wide>
+    <Modal open={!!templateKey} onClose={onClose} title={data ? `${data.club.name} squad` : 'Squad'} wide
+      footer={onChoose && data ? <button className="btn btn-gold w-full !min-h-[52px] text-base" disabled={busy} onClick={() => onChoose(data.club.key)}>{busy ? 'Saving' : `Choose ${data.club.name}`}</button> : null}>
       {err ? <ErrorState message={err} /> : !data ? <Spinner label="Loading squad" /> : (
         <>
           <div className="flex items-center gap-3 mb-4">
             <Crest colors={data.club.crest} mono={data.club.short} size={52} />
             <div className="flex-1"><p className="font-display text-xl">{data.club.name}</p><p className="text-sm text-slate-300">{data.club.stadium} · Best XI OVR <b className="text-gold">{data.club.ovr}</b></p></div>
-            {onChoose && <button className="btn btn-gold" disabled={busy} onClick={() => onChoose(data.club.key)}>Choose this club</button>}
           </div>
           {groups.map(([title, pos]) => (
             <div key={title} className="mb-5">
