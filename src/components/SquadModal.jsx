@@ -14,13 +14,22 @@ export default function SquadModal({ templateKey, onClose, onChoose, busy }) {
   }, [templateKey]);
   const groups = data && [['Goalkeepers', ['GK']], ['Defenders', ['CB', 'LB', 'RB']], ['Midfielders', ['CDM', 'CM', 'CAM']], ['Attackers', ['LW', 'RW', 'ST']]];
   return (
-    <Modal open={!!templateKey} onClose={onClose} title={data ? `${data.club.name} squad` : 'Squad'} wide
-      footer={onChoose && data ? <button className="btn btn-gold w-full !min-h-[52px] text-base" disabled={busy} onClick={() => onChoose(data.club.key)}>{busy ? 'Saving' : `Choose ${data.club.name}`}</button> : null}>
+    <Modal open={!!templateKey} onClose={onClose} title={data ? `${data.club.name} squad` : 'Squad'} wide>
       {err ? <ErrorState message={err} /> : !data ? <Spinner label="Loading squad" /> : (
         <>
-          <div className="flex items-center gap-3 mb-4">
-            <Crest colors={data.club.crest} mono={data.club.short} size={52} />
-            <div className="flex-1"><p className="font-display text-xl">{data.club.name}</p><p className="text-sm text-slate-300">{data.club.stadium} · Best XI OVR <b className="text-gold">{data.club.ovr}</b></p></div>
+          <div className="sticky top-0 z-10 -mx-5 -mt-5 mb-4 px-5 pt-4 pb-3 bg-ink/95 backdrop-blur border-b border-white/10">
+            <div className="flex items-center gap-3">
+              <Crest colors={data.club.crest} mono={data.club.short} size={52} />
+              <div className="flex-1 min-w-0">
+                <p className="font-display text-xl truncate">{data.club.name}</p>
+                <p className="text-sm text-slate-300">{data.club.stadium} · Best XI OVR <b className="text-gold">{data.club.ovr}</b></p>
+              </div>
+            </div>
+            {onChoose && (
+              <button className="btn btn-gold w-full !min-h-[48px] text-base mt-3" disabled={busy} onClick={() => onChoose(data.club.key)}>
+                {busy ? 'Saving' : `Choose ${data.club.name}`}
+              </button>
+            )}
           </div>
           {groups.map(([title, pos]) => (
             <div key={title} className="mb-5">
