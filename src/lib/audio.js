@@ -48,4 +48,23 @@ export const sfx = {
     o.connect(g); o2.connect(g); g.connect(c.destination); [o, o2, lfo].forEach((n) => { n.start(t); n.stop(t + dur + 0.05); });
   },
   goal() { this.swell(0.28, 4); this.whistle(false); },
+  kick() {
+    const c = ac(); if (!c || muted) return;
+    const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(190, t); o.frequency.exponentialRampToValueAtTime(70, t + 0.09);
+    g.gain.setValueAtTime(0.16, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.14);
+  },
+  card() {
+    const c = ac(); if (!c || muted) return;
+    const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+    o.type = 'triangle'; o.frequency.setValueAtTime(520, t); o.frequency.setValueAtTime(390, t + 0.12);
+    g.gain.setValueAtTime(0.07, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.32);
+  },
+  sub() {
+    const c = ac(); if (!c || muted) return;
+    const t = c.currentTime;
+    [660, 880].forEach((f, i) => { const o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.value = f; g.gain.setValueAtTime(0.001, t + i * 0.12); g.gain.linearRampToValueAtTime(0.07, t + i * 0.12 + 0.02); g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.12 + 0.25); o.connect(g); g.connect(c.destination); o.start(t + i * 0.12); o.stop(t + i * 0.12 + 0.28); });
+  },
 };

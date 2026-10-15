@@ -30,6 +30,8 @@ export default function MatchStats({ stats, goals, cards, setup, result }) {
         <Row label="Passes" h={h.passes} a={a.passes} />
         <Row label="Fouls" h={h.fouls} a={a.fouls} />
         <Row label="Penalties" h={h.penalties} a={a.penalties} />
+        {h.offsides != null && <Row label="Offsides" h={h.offsides} a={a.offsides} />}
+        {h.throwIns != null && <Row label="Throw-ins" h={h.throwIns} a={a.throwIns} />}
         <Row label="Expected goals (APEX xG)" h={h.xg} a={a.xg} fmt={(x) => Number(x).toFixed(2)} />
       </div>
       <div className="space-y-4">

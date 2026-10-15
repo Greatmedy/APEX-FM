@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api, { errMsg } from '../lib/api';
 import { getSocket } from '../lib/socket';
@@ -14,6 +14,9 @@ import Crest from '../components/Crest';
 import TimeWAT from '../components/TimeWAT';
 import Countdown from '../components/Countdown';
 import PitchCanvas from '../components/match/PitchCanvas';
+import AdStrip from '../components/match/AdStrip';
+import { webglAvailable, detectQuality } from '../components/match/3d/webgl';
+const Match3D = lazy(() => import('../components/match/3d/Match3D')); // three.js loads only when the 3D view is used
 import EventFeed, { describe } from '../components/match/EventFeed';
 import MatchControls from '../components/match/MatchControls';
 import MatchStats from '../components/match/MatchStats';
@@ -72,6 +75,13 @@ export default function Match() {
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [readyBusy, setReadyBusy] = useState(false);
+  const [ads, setAds] = useState([]);
+  const [view, setView] = useState(() => {
+    const saved = localStorage.getItem('apex_view');
+    if (saved === '2d') return '2d';
+    if (!webglAvailable()) return '2d';
+    return saved === '3d' || detectQuality() !== 'low' ? '3d' : '2d';
+  });
   const [, force] = useReducer((x) => x + 1, 0);
   const pl = useRef(null);
   const fxRef = useRef(null);
@@ -79,10 +89,12 @@ export default function Match() {
 
   const onEvent = useCallback((ev) => {
     if (ev.k === 'goal') sfx.goal();
-    else if (ev.k === 'foul' || ev.k === 'pen') sfx.whistle();
+    else if (ev.k === 'foul' || ev.k === 'pen' || ev.k === 'offside') sfx.whistle();
     else if (ev.k === 'halftime' || ev.k === 'fulltime') sfx.whistle(true);
     else if (ev.k === 'kickoff' && !ev.re) sfx.whistle();
     else if (ev.k === 'shot') sfx.swell(0.1, 1.2);
+    else if (ev.k === 'yellow' || ev.k === 'red') sfx.card();
+    else if (ev.k === 'sub') sfx.sub();
   }, []);
 
   const load = useCallback(async () => {
@@ -109,7 +121,10 @@ export default function Match() {
     } catch (e) { setErr(errMsg(e)); }
   }, [id, mode, onEvent]);
 
-  useEffect(() => { pl.current = null; setFx(null); setRep(null); setMode(null); setPlaying(false); }, [id]);
+  useEffect(() => { pl.current = null; setFx(null); setRep(null); setMode(null); setPlaying(false); setAds([]); }, [id]);
+  useEffect(() => { let off = false; api.get(`/matches/${id}/ads`).then(({ data }) => { if (!off) setAds(data.brands || []); }).catch(() => {}); return () => { off = true; }; }, [id]);
+  const pickView = (v) => { setView(v); localStorage.setItem('apex_view', v); };
+  const fail3D = useCallback((msg) => { setView('2d'); toast(`3D view unavailable (${msg || 'WebGL error'}). Switched to the 2D pitch.`, 'info'); }, [toast]);
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
 
   // sockets
@@ -222,7 +237,7 @@ export default function Match() {
         </div>
       )}
       {fx.status === 'finished' && !fx.hasReplay && (
-        <div className="glass p-5 text-center"><p className="font-display text-2xl">{fx.result?.noShow ? 'No-show: 0-0' : 'Result recorded'}</p><p className="text-sm text-slate-300 mt-1">{fx.result?.noShow ? 'Neither manager was ready at kickoff. One point each.' : 'This result was set by an admin, so there is no replay.'}</p></div>
+        <div className="glass p-5 text-center"><p className="font-display text-2xl">{fx.result?.noShow ? `No-show: ${fx.result.h}-${fx.result.a}` : 'Result recorded'}</p><p className="text-sm text-slate-300 mt-1">{fx.result?.noShow ? 'Neither manager was ready at kickoff, so the match was not played. A no-show is never a draw: one side is awarded the win.' : 'This result was set by an admin, so there is no replay.'}</p></div>
       )}
       {fx.status === 'void' && <div className="glass p-5 text-center"><p className="font-display text-2xl">Match voided</p></div>}
 
@@ -242,7 +257,7 @@ export default function Match() {
                 {readyOpen && !myReady && <button className="btn btn-gold w-full mt-3 !min-h-[54px] text-lg" disabled={readyBusy} onClick={doReady}>{readyBusy ? 'Saving' : 'Ready'}</button>}
                 {myReady && <p className="mt-3 text-pitch font-bold">You are ready.</p>}
                 {(myReady || readyOpen) && (oppClub?.isAI ? <p className="text-sm text-slate-300 mt-2">{oppClub.displayName} is an APEX AI club and always plays.</p> : !oppReady ? <p className="text-sm text-slate-300 mt-2">Waiting for opponent{myReady ? ' to click Ready' : ''}.</p> : <p className="text-sm text-pitch mt-2">Opponent is ready.</p>)}
-                <p className="text-xs text-slate-400 mt-4">If only one manager is ready, the match still starts at 20:00 and the other side is auto-readied. If neither is ready, it is recorded 0-0 with a point each. A dropped connection never stops a match.</p>
+                <p className="text-xs text-slate-400 mt-4">If only one manager is ready, the match still starts at 20:00 and the other side is auto-readied. If neither is ready, the match is not played and one side is awarded a win by a clear scoreline. It is never recorded as a draw. A dropped connection never stops a match.</p>
               </>
             )}
             {oppClub && <Link to={`/clubs/${oppClub.id}`} className="btn btn-ghost w-full mt-4">Scout {oppClub.displayName}</Link>}
@@ -255,10 +270,17 @@ export default function Match() {
           <div className="lg:col-span-3 space-y-3">
             <Hud setup={player.setup} st={player.st} clock={clock} status={fx.status} last={player.st.lastEv} />
             <div className="glass p-2 sm:p-3">
-              <PitchCanvas player={player} kits={kits} />
+              {view === '3d' ? (
+                <Suspense fallback={<div className="aspect-video grid place-items-center text-sm text-slate-300">Loading 3D pitch</div>}>
+                  <Match3D player={player} kits={kits} mode={mode} playing={playing} speed={speed} ads={ads} onFail={fail3D} />
+                </Suspense>
+              ) : (<><AdStrip brands={ads} /><PitchCanvas player={player} kits={kits} /></>)}
               <div className="flex items-center justify-between gap-2 mt-2 px-1">
                 <div className="flex items-center gap-2 text-[11px] text-slate-300"><span className="inline-block w-3 h-3 rounded-full border border-white" style={{ background: kits.h.shirt }} />{player.setup.h.short}<span className="inline-block w-3 h-3 rounded-full border border-white ml-2" style={{ background: kits.a.shirt }} />{player.setup.a.short}</div>
-                <MuteButton />
+                <div className="flex items-center gap-1">
+                  <div className="flex rounded-lg overflow-hidden border border-white/15" role="group" aria-label="Pitch view">{['3d', '2d'].map((v) => <button key={v} onClick={() => pickView(v)} aria-pressed={view === v} className={`px-3 min-h-[40px] text-xs font-bold ${view === v ? 'bg-pitch text-ink' : 'bg-white/10'}`}>{v.toUpperCase()}</button>)}</div>
+                  <MuteButton />
+                </div>
               </div>
             </div>
             {(mode === 'replay') && (

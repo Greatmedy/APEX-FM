@@ -3,6 +3,7 @@ import api, { errMsg } from '../lib/api';
 import { useToast } from '../context/ToastContext';
 import { Spinner, ErrorState, Tabs, Field } from '../components/ui';
 import { fmtWAT } from '../lib/time';
+import AdBoardsAdmin from '../components/admin/AdBoardsAdmin';
 
 function Overview({ ov, reload }) {
   const toast = useToast();
@@ -146,10 +147,11 @@ export default function Admin() {
   return (
     <div className="space-y-4">
       <h1 className="font-display text-3xl">Admin</h1>
-      <Tabs value={tab} onChange={setTab} tabs={[{ id: 'overview', label: 'Overview' }, { id: 'players', label: 'Players' }, { id: 'fixtures', label: 'Fixtures' }, { id: 'settings', label: 'Settings' }]} />
+      <Tabs value={tab} onChange={setTab} tabs={[{ id: 'overview', label: 'Overview' }, { id: 'players', label: 'Players' }, { id: 'fixtures', label: 'Fixtures' }, { id: 'ads', label: 'Advertising' }, { id: 'settings', label: 'Settings' }]} />
       {tab === 'overview' && <Overview ov={ov} reload={load} />}
       {tab === 'players' && <Players />}
       {tab === 'fixtures' && <Fixtures />}
+      {tab === 'ads' && <AdBoardsAdmin />}
       {tab === 'settings' && <div className="space-y-4"><Settings ov={ov} reload={load} /><SeasonDate ov={ov} reload={load} /></div>}
     </div>
   );

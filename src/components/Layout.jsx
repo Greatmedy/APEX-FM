@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { InstallBanner, InstallMenuItem } from './InstallApp';
 import api from '../lib/api';
 import { getSocket } from '../lib/socket';
 import { ago, setServerNow } from '../lib/time';
@@ -97,6 +98,7 @@ export default function Layout() {
                   <div className="px-3 py-2"><p className="font-bold truncate">{user?.managerName || user?.username}</p><p className="text-xs text-slate-400 truncate">@{user?.username} · {user?.country}</p></div>
                   {user?.role === 'admin' && <Link to="/admin" className="block px-3 py-2.5 rounded-lg hover:bg-white/10 text-sm font-semibold" onClick={() => setMenu(false)}>Admin</Link>}
                   <Link to="/club" className="block px-3 py-2.5 rounded-lg hover:bg-white/10 text-sm font-semibold" onClick={() => setMenu(false)}>My team</Link>
+                  <InstallMenuItem onDone={() => setMenu(false)} />
                   <button className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-white/10 text-sm font-semibold text-rose-300" onClick={logout}>Sign out</button>
                 </div>
               )}
@@ -104,6 +106,7 @@ export default function Layout() {
           </div>
         </div>
       </header>
+      <InstallBanner />
       <main className="max-w-6xl mx-auto px-3 sm:px-5 py-5 pb-nav"><Outlet /></main>
       <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 glass-deep !rounded-none border-x-0 border-b-0" style={{ paddingBottom: 'var(--safe-b)' }} aria-label="Primary">
         <div className="grid grid-cols-5">
