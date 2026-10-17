@@ -3,9 +3,9 @@ import Crest from './Crest';
 import { monoOf } from './util';
 
 /** Table rows from /league/:tier/table. Every club shows its manager tag via displayName. */
-export default function LeagueTable({ rows = [], tier = 1, myClubId, limit, className = '' }) {
+export default function LeagueTable({ rows = [], tier = 1, maxTier = 2, myClubId, limit, className = '' }) {
   const shown = limit ? rows.slice(0, limit) : rows;
-  const zone = (pos) => (tier === 1 ? (pos >= 18 ? 'bg-danger' : pos <= 4 ? 'bg-pitch' : '') : pos <= 3 ? 'bg-pitch' : '');
+  const zone = (pos) => (pos >= 18 && tier < maxTier ? 'bg-danger' : tier === 1 ? (pos <= 4 ? 'bg-pitch' : '') : pos <= 3 ? 'bg-pitch' : '');
   const me = rows.find((r) => String(r.club.id) === String(myClubId));
   const list = limit && me && !shown.includes(me) ? [...shown, me] : shown;
   return (
