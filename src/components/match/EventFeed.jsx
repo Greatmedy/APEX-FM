@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
 import { minuteOf } from '../../lib/matchCore';
 
-const KEY = new Set(['goal', 'shot', 'save', 'foul', 'yellow', 'red', 'sub', 'pen', 'corner', 'offside', 'freekick', 'miss', 'injury', 'halftime', 'fulltime', 'style']);
+const KEY = new Set(['goal', 'shot', 'save', 'foul', 'yellow', 'red', 'sub', 'pen', 'corner', 'miss', 'injury', 'halftime', 'fulltime', 'style']);
 const TAG = {
   goal: ['GOAL', 'bg-pitch text-ink'], shot: ['SHOT', 'bg-white/15'], save: ['SAVE', 'bg-sky-500/70'], miss: ['MISS', 'bg-white/10'], foul: ['FOUL', 'bg-orange-500/70'],
   yellow: ['YELLOW', 'bg-yellow-400 text-ink'], red: ['RED', 'bg-danger'], pass: ['PASS', 'bg-white/10'], dribble: ['RUN', 'bg-white/10'], tackle: ['TACKLE', 'bg-white/10'],
   interception: ['CUT OUT', 'bg-white/10'], sub: ['SUB', 'bg-violet-500/70'], pen: ['PEN', 'bg-danger/80'], corner: ['CORNER', 'bg-white/15'], injury: ['INJURY', 'bg-rose-700'],
-  offside: ['OFFSIDE', 'bg-orange-400/80'], throwin: ['THROW-IN', 'bg-white/10'], freekick: ['FREE KICK', 'bg-sky-400/70'], kickoff: ['KICKOFF', 'bg-white/15'], goalkick: ['GOAL KICK', 'bg-white/10'], halftime: ['HT', 'bg-gold text-ink'], fulltime: ['FT', 'bg-gold text-ink'], style: ['TACTIC', 'bg-white/15'],
+  kickoff: ['KICKOFF', 'bg-white/15'], goalkick: ['GOAL KICK', 'bg-white/10'], halftime: ['HT', 'bg-gold text-ink'], fulltime: ['FT', 'bg-gold text-ink'], style: ['TACTIC', 'bg-white/15'],
 };
 
 export function describe(ev, setup, assistNameFor) {
@@ -31,9 +31,6 @@ export function describe(ev, setup, assistNameFor) {
     case 'red': return `Red card. ${nm(ev.t, ev.p)} is sent off${ev.why === '2y' ? ' for a second yellow' : ''}.`;
     case 'pen': return `Penalty to ${team}.`;
     case 'corner': return `Corner to ${team}, taken by ${nm(ev.t, ev.p)}.`;
-    case 'offside': return `Offside. ${nm(ev.t, ev.p)} (${team}) was beyond the last defender when ${nm(ev.t, ev.q)} played the ball. Free kick to ${setup[o].short}.`;
-    case 'freekick': return `Free kick to ${team}, taken by ${nm(ev.t, ev.p)}${ev.wall ? '. The wall is set.' : '.'}`;
-    case 'throwin': return `Throw-in to ${team}, taken by ${nm(ev.t, ev.p)}.`;
     case 'goalkick': return `Goal kick, ${nm(ev.t, ev.p)}.`;
     case 'sub': return `${team} substitution: ${nm(ev.t, ev.q)} on for ${nm(ev.t, ev.p)}${ev.forced ? ' (injury)' : ''}.`;
     case 'injury': return `${nm(ev.t, ev.p)} (${team}) is injured.`;

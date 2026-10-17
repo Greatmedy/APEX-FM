@@ -50,7 +50,7 @@ export function applyEvent(st, ev) {
   const t = ev.t, o = opp(t);
   const S = st.sides[t], X = st.stats[t], Y = st.stats[o];
   if (ev.z !== undefined) { st.z = ev.z; if (ev.y !== undefined) st.y = ev.y; }
-  const holder = { kickoff: t, goalkick: t, pass: t, dribble: t, tackle: t, interception: t, shot: t, goal: t, save: t, miss: t, corner: t, pen: t, throwin: t, freekick: t, foul: o, offside: o }[ev.k];
+  const holder = { kickoff: t, goalkick: t, pass: t, dribble: t, tackle: t, interception: t, shot: t, goal: t, save: t, miss: t, corner: t, pen: t, foul: o }[ev.k];
   if (holder) st.poss = holder;
   if (ev.k !== 'pass' && ev.k !== 'yellow' && ev.k !== 'red' && ev.k !== 'sub' && ev.k !== 'style' && ev.k !== 'injury') st.lastPass = null;
   const min = Math.min(90, Math.floor(ev.s / 60) + 1);
@@ -62,9 +62,6 @@ export function applyEvent(st, ev) {
     case 'interception': st.carrier = ev.p; Y.passes++; break;
     case 'foul': X.fouls++; st.carrier = ev.q; break;
     case 'pen': X.pens++; break;
-    case 'throwin': X.throwins++; st.carrier = ev.p; break;
-    case 'freekick': st.carrier = ev.p; break;
-    case 'offside': X.offsides++; st.carrier = ev.x || null; break; // free kick to the other side (ev.x takes it)
     case 'corner': X.corners++; st.carrier = ev.p; break;
     case 'shot': X.shots++; X.xg += ev.xg || 0; st.carrier = null; break;
     case 'goal':
