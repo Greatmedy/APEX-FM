@@ -145,7 +145,7 @@ function LeagueStep({ user, onDone }) {
   if (user.onboarding.step === 'waitlist' || open.length === 0) {
     return (
       <div className="text-center max-w-md mx-auto py-6">
-        <p className="font-display text-2xl">Both leagues are full</p>
+        <p className="font-display text-2xl">Every league is full</p>
         <p className="text-slate-300 mt-2 text-sm">You are on the waitlist. When the next season is drawn and a slot opens, you will get a notification and your club appears on your dashboard. Your club choice and manager details are saved.</p>
         {open.length === 0 && user.onboarding.step !== 'waitlist' && <button className="btn btn-gold mt-5" onClick={() => join(2)} disabled={!!busy}>Join the waitlist</button>}
       </div>
@@ -154,12 +154,12 @@ function LeagueStep({ user, onDone }) {
   return (
     <div>
       <h1 className="font-display text-2xl tracking-wide">Pick your league</h1>
-      <p className="text-sm text-slate-300 mt-1 mb-5">Each league has 20 clubs and 38 gameweeks. Matches kick off at 20:00 WAT every Monday and Thursday. League 1 is the top flight.</p>
+      <p className="text-sm text-slate-300 mt-1 mb-5">Each league has 20 clubs and 38 gameweeks. Matches kick off at 20:00 WAT every Monday and Thursday. League 1 is the top flight. When every league is full of managers, a new division opens (up to League 5); any places not taken by managers are filled by APEX AI clubs.</p>
       <div className="grid sm:grid-cols-2 gap-4">
         {leagues.map((l) => (
           <div key={l.tier} className={`glass p-5 ${l.free === 0 ? 'opacity-60' : ''}`}>
             <p className="font-display text-xl">{l.name}</p>
-            <p className="text-sm text-slate-300 mt-1">{l.tier === 1 ? 'The higher league. Bottom 3 are relegated.' : 'The lower league. Top 3 are promoted.'}</p>
+            <p className="text-sm text-slate-300 mt-1">{l.isNew ? 'A brand new division, open to you now. ' : ''}{l.tier === 1 ? 'The top flight. Bottom 3 are relegated.' : 'Top 3 are promoted. Bottom 3 are relegated (except in the lowest division).'}</p>
             <p className="num text-4xl mt-4 text-pitch">{l.free}<span className="text-sm text-slate-300 font-sans ml-2">free slot{l.free === 1 ? '' : 's'}</span></p>
             <button className="btn btn-gold w-full mt-4" disabled={l.free === 0 || !!busy} onClick={() => join(l.tier)}>{l.free === 0 ? 'League full' : busy === l.tier ? 'Joining' : `Join ${l.name}`}</button>
           </div>

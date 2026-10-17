@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
 import { minuteOf } from '../../lib/matchCore';
 
-const KEY = new Set(['goal', 'shot', 'save', 'foul', 'yellow', 'red', 'sub', 'pen', 'corner', 'miss', 'injury', 'halftime', 'fulltime', 'style']);
+const KEY = new Set(['goal', 'shot', 'save', 'foul', 'yellow', 'red', 'sub', 'pen', 'corner', 'offside', 'freekick', 'miss', 'injury', 'halftime', 'fulltime', 'style']);
 const TAG = {
   goal: ['GOAL', 'bg-pitch text-ink'], shot: ['SHOT', 'bg-white/15'], save: ['SAVE', 'bg-sky-500/70'], miss: ['MISS', 'bg-white/10'], foul: ['FOUL', 'bg-orange-500/70'],
   yellow: ['YELLOW', 'bg-yellow-400 text-ink'], red: ['RED', 'bg-danger'], pass: ['PASS', 'bg-white/10'], dribble: ['RUN', 'bg-white/10'], tackle: ['TACKLE', 'bg-white/10'],
   interception: ['CUT OUT', 'bg-white/10'], sub: ['SUB', 'bg-violet-500/70'], pen: ['PEN', 'bg-danger/80'], corner: ['CORNER', 'bg-white/15'], injury: ['INJURY', 'bg-rose-700'],
-  kickoff: ['KICKOFF', 'bg-white/15'], goalkick: ['GOAL KICK', 'bg-white/10'], halftime: ['HT', 'bg-gold text-ink'], fulltime: ['FT', 'bg-gold text-ink'], style: ['TACTIC', 'bg-white/15'],
+  offside: ['OFFSIDE', 'bg-orange-400/80'], throwin: ['THROW-IN', 'bg-white/10'], freekick: ['FREE KICK', 'bg-sky-400/70'], kickoff: ['KICKOFF', 'bg-white/15'], goalkick: ['GOAL KICK', 'bg-white/10'], halftime: ['HT', 'bg-gold text-ink'], fulltime: ['FT', 'bg-gold text-ink'], style: ['TACTIC', 'bg-white/15'],
 };
 
 export function describe(ev, setup, assistNameFor) {
@@ -19,18 +19,21 @@ export function describe(ev, setup, assistNameFor) {
   const team = setup[ev.t].short;
   switch (ev.k) {
     case 'goal': return `${nm(ev.t, ev.p)} scores${ev.pen ? ' from the spot' : ''} for ${team}.${ev.q ? ` Assist: ${nm(ev.t, ev.q)}.` : ''}`;
-    case 'shot': return `${nm(ev.t, ev.p)} shoots${ev.pen ? ' the penalty' : ''}.`;
+    case 'shot': return `${nm(ev.t, ev.p)} ${ev.hd ? 'heads it towards goal' : ev.fk ? 'shoots from the free kick' : ev.pen ? 'takes the penalty' : 'shoots'}.`;
     case 'save': return `${nm(ev.t, ev.p)} saves from ${nm(o, ev.q)}.`;
     case 'miss': return ev.bl ? `${nm(ev.t, ev.p)}'s shot is blocked by ${nm(o, ev.q)}.` : ev.post ? `${nm(ev.t, ev.p)} hits the post.` : `${nm(ev.t, ev.p)} shoots wide.`;
-    case 'pass': return `${nm(ev.t, ev.p)} passes to ${nm(ev.t, ev.q)}.`;
+    case 'pass': return ev.cr ? `${nm(ev.t, ev.p)} delivers the corner to ${nm(ev.t, ev.q)}.` : `${nm(ev.t, ev.p)} passes to ${nm(ev.t, ev.q)}.`;
     case 'dribble': return `${nm(ev.t, ev.p)} carries the ball forward.`;
     case 'tackle': return `${nm(ev.t, ev.p)} wins the ball${ev.q ? ` from ${nm(o, ev.q)}` : ''}.`;
     case 'interception': return `${nm(ev.t, ev.p)} intercepts the pass.`;
-    case 'foul': return `Foul by ${nm(ev.t, ev.p)} on ${nm(o, ev.q)}.`;
+    case 'foul': return `${ev.sl ? 'Late sliding challenge' : 'Hard tackle'}: foul by ${nm(ev.t, ev.p)} on ${nm(o, ev.q)}.${ev.warn ? ' The referee warns him.' : ''}`;
     case 'yellow': return `Yellow card for ${nm(ev.t, ev.p)}${ev.second ? ' (second yellow)' : ''}.`;
     case 'red': return `Red card. ${nm(ev.t, ev.p)} is sent off${ev.why === '2y' ? ' for a second yellow' : ''}.`;
     case 'pen': return `Penalty to ${team}.`;
     case 'corner': return `Corner to ${team}, taken by ${nm(ev.t, ev.p)}.`;
+    case 'offside': return `Offside. ${nm(ev.t, ev.p)} (${team}) was beyond the last defender when ${nm(ev.t, ev.q)} played the ball. Free kick to ${setup[o].short}.`;
+    case 'freekick': return `Free kick to ${team}, taken by ${nm(ev.t, ev.p)}${ev.wall ? '. The wall is set.' : '.'}`;
+    case 'throwin': return `Throw-in to ${team}, taken by ${nm(ev.t, ev.p)}.`;
     case 'goalkick': return `Goal kick, ${nm(ev.t, ev.p)}.`;
     case 'sub': return `${team} substitution: ${nm(ev.t, ev.q)} on for ${nm(ev.t, ev.p)}${ev.forced ? ' (injury)' : ''}.`;
     case 'injury': return `${nm(ev.t, ev.p)} (${team}) is injured.`;

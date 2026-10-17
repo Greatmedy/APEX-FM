@@ -88,7 +88,7 @@ export default function Home() {
               <p className="font-display text-lg tracking-wide">My league table</p>
               <Link to={`/league/${club.tier}`} className="text-sm font-bold text-gold">Full page</Link>
             </div>
-            <LeagueTable rows={d.table} tier={club.tier} myClubId={club.id} limit={full ? undefined : 5} />
+            <LeagueTable rows={d.table} tier={club.tier} maxTier={d.maxTier || 2} myClubId={club.id} limit={full ? undefined : 5} />
             <button className="w-full min-h-[48px] text-sm font-bold text-pitch border-t border-white/10 hover:bg-white/5" onClick={() => setFull((f) => !f)}>{full ? 'Collapse to top 5' : 'Show all 20 clubs'}</button>
           </div>
           <BoardPanel />

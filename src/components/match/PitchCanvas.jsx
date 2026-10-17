@@ -147,6 +147,12 @@ export default function PitchCanvas({ player, kits, className = '' }) {
           ctx.fillStyle = '#fff'; ctx.fillText(nm, x, y + R + 3 + R * 0.68);
         }
       }
+      // offside line (the free kick spot is where the offside player stood)
+      if (le && le.k === 'offside' && sinceEv < 2.6) {
+        const a = Math.min(1, (2.6 - sinceEv) * 1.2), lx = px(tb.x);
+        ctx.save(); ctx.globalAlpha = a * 0.9; ctx.strokeStyle = '#ffe066'; ctx.lineWidth = Math.max(1.5, R * 0.16); ctx.setLineDash([R * 0.6, R * 0.45]);
+        ctx.beginPath(); ctx.moveTo(lx, py(0)); ctx.lineTo(lx, py(1)); ctx.stroke(); ctx.restore();
+      }
       // ball trail + ball
       for (let i = 0; i < trail.length; i++) {
         const a = (i + 1) / trail.length;
@@ -166,6 +172,15 @@ export default function PitchCanvas({ player, kits, className = '' }) {
         ctx.fillStyle = '#14F195'; ctx.font = `700 ${Math.round(size.w * 0.1)}px Oswald, sans-serif`; ctx.fillText('GOAL!', size.w / 2, size.h * 0.47);
         ctx.fillStyle = '#fff'; ctx.font = `700 ${Math.round(size.w * 0.034)}px Manrope, sans-serif`; ctx.fillText(sc ? sc.name : '', size.w / 2, size.h * 0.58);
         ctx.restore();
+      }
+      // restart labels
+      const tag = le && sinceEv < (le.k === 'offside' ? 2.4 : 1.4) ? (le.k === 'offside' ? ['OFFSIDE', '#fb923c'] : le.k === 'throwin' ? ['THROW-IN', '#e2e8f0'] : null) : null;
+      if (tag) {
+        const a = Math.min(1, ((le.k === 'offside' ? 2.4 : 1.4) - sinceEv) * 2);
+        ctx.save(); ctx.globalAlpha = a; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(7,17,31,.72)';
+        const fs = Math.round(size.w * (le.k === 'offside' ? 0.05 : 0.036)); ctx.font = `700 ${fs}px Oswald, sans-serif`;
+        const tw = ctx.measureText(tag[0]).width + fs; ctx.fillRect(size.w / 2 - tw / 2, size.h * 0.06, tw, fs * 1.5);
+        ctx.fillStyle = tag[1]; ctx.fillText(tag[0], size.w / 2, size.h * 0.06 + fs * 1.1); ctx.restore();
       }
     }
     raf = requestAnimationFrame(frame);

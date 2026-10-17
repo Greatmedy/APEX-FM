@@ -32,6 +32,7 @@ export default function Club() {
             <h1 className="font-display text-3xl leading-tight">{club.displayName}</h1>
             <p className="text-sm text-slate-300">{league}{rank ? ` · Rank ${rank}` : ''}</p>
             <div className="mt-2"><FormChips form={club.seasonForm} /></div>
+            {(club.titles || []).length > 0 && <div className="mt-2 flex flex-wrap gap-2" aria-label="Titles won">{club.titles.map((t) => <span key={`${t.season}-${t.tier}`} className="chip bg-gold text-ink font-bold">Champions · APEX League {t.tier} · Season {t.season}</span>)}</div>}
           </div>
         </div>
         <div className="grid grid-cols-3 gap-3 sm:w-80">

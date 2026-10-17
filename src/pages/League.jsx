@@ -73,7 +73,10 @@ export default function League() {
   const [tab, setTab] = useState('table');
   const [d, setD] = useState({});
   const [err, setErr] = useState('');
-  const t = Number(tier) === 2 ? 2 : 1;
+  const t = Math.max(1, Number(tier) || 1);
+  const [tiers, setTiers] = useState([{ tier: 1, name: 'APEX League 1' }, { tier: 2, name: 'APEX League 2' }]);
+  useEffect(() => { api.get('/league/tiers').then(({ data }) => data.tiers?.length && setTiers(data.tiers)).catch(() => {}); }, []);
+  const maxTier = Math.max(...tiers.map((x) => x.tier));
   const load = () => {
     setErr('');
     api.get(`/league/${t}/table`).then(({ data }) => setD((x) => ({ ...x, table: data.rows, season: data.season }))).catch((e) => setErr(errMsg(e)));
@@ -85,12 +88,12 @@ export default function League() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div><h1 className="font-display text-3xl">APEX League {t}</h1><p className="text-sm text-slate-300">Season {d.season ?? '-'} · 20 clubs · 38 gameweeks · Win 3, draw 1</p></div>
-        <Tabs value={String(t)} onChange={(v) => nav(`/league/${v}`)} tabs={[{ id: '1', label: 'League 1' }, { id: '2', label: 'League 2' }]} />
+        <Tabs value={String(t)} onChange={(v) => nav(`/league/${v}`)} tabs={tiers.map((x) => ({ id: String(x.tier), label: `League ${x.tier}` }))} />
       </div>
       <Tabs value={tab} onChange={setTab} tabs={[{ id: 'table', label: 'Table' }, { id: 'fixtures', label: 'Fixtures' }, { id: 'scorers', label: 'Top scorers' }, { id: 'assists', label: 'Top assists' }]} />
       <div className="glass overflow-hidden">
-        {err ? <ErrorState message={err} onRetry={load} /> : tab === 'table' ? (d.table ? <><LeagueTable rows={d.table} tier={t} myClubId={user?.clubId} />
-          <p className="text-[11px] text-slate-400 px-4 py-3 border-t border-white/10">{t === 1 ? 'Positions 18-20 are relegated. Forfeited clubs are relegated first.' : 'Positions 1-3 are promoted.'} Tie-breakers: points, goal difference, goals scored, head-to-head, manager name.</p></> : <Spinner />)
+        {err ? <ErrorState message={err} onRetry={load} /> : tab === 'table' ? (d.table ? <><LeagueTable rows={d.table} tier={t} maxTier={maxTier} myClubId={user?.clubId} />
+          <p className="text-[11px] text-slate-400 px-4 py-3 border-t border-white/10">{[t > 1 ? 'Positions 1-3 are promoted.' : 'The champion is crowned and its fans grow.', t < maxTier ? 'Positions 18-20 are relegated. Forfeited clubs are relegated first.' : ''].filter(Boolean).join(' ')} The team top of the table at season end is crowned champion. Tie-breakers: points, goal difference, goals scored, head-to-head, manager name.</p></> : <Spinner />)
           : tab === 'fixtures' ? <Fixtures tier={t} myClubId={user?.clubId} />
             : tab === 'scorers' ? <Leaders rows={d.scorers} label="Goals" /> : <Leaders rows={d.assists} label="Assists" />}
       </div>

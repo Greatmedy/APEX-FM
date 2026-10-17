@@ -2,7 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: dark; --safe-b: env(safe-area-inset-bottom, 0px); }
+:root { color-scheme: dark; --safe-b: env(safe-area-inset-bottom, 0px); --safe-t: env(safe-area-inset-top, 0px); --safe-l: env(safe-area-inset-left, 0px); --safe-r: env(safe-area-inset-right, 0px); }
+/* Sticky top bars sit below the notch / Dynamic Island / status bar on iPhones (the inset is 0 on desktop). */
+.safe-top { padding-top: calc(var(--safe-t) + 4px); }
 html, body, #root { min-height: 100%; }
 body {
   margin: 0; font-family: 'Manrope', system-ui, sans-serif; color: #fff; background-color: #07111F;
