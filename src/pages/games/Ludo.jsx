@@ -11,6 +11,7 @@ const COLOR_NAME = { red: 'Red', yellow: 'Yellow', green: 'Green', blue: 'Blue' 
 
 export default function Ludo() {
   const { user } = useAuth();
+  const userId = String(user?.id ?? user?._id ?? '');
   const toast = useToast();
   const [balance, setBalance] = useState(null);
   const [games, setGames] = useState([]);
@@ -112,8 +113,8 @@ export default function Ludo() {
   if (loading) return <Spinner label="Opening Ludo" />;
   if (err && !game) return <ErrorState message={err} onRetry={refresh} />;
 
-  const me = game?.players?.find((p) => p.user === user?.id);
-  const myTurn = game?.players?.[game.turnIndex]?.user === user?.id;
+  const me = game?.players?.find((p) => String(p.user) === userId);
+  const myTurn = String(game?.players?.[game.turnIndex]?.user ?? '') === userId;
 
   return (
     <div className="space-y-5">
@@ -162,7 +163,7 @@ export default function Ludo() {
                 <div key={p.user} className={`rounded-xl p-3 border ${p.isTurn ? 'ring-2' : ''}`} style={{ borderColor: COLOR[p.color], ['--tw-ring-color' ]: COLOR[p.color] }}>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="w-3 h-3 rounded-full" style={{ background: COLOR[p.color] }} />
-                    <p className="text-xs font-bold truncate">{p.name}{p.user === user?.id ? ' (you)' : ''}</p>
+                    <p className="text-xs font-bold truncate">{p.name}{String(p.user) === userId ? ' (you)' : ''}</p>
                   </div>
                   <div className="flex gap-1">
                     {p.tokens.map((t, i) => (
@@ -211,7 +212,7 @@ export default function Ludo() {
             <div className="glass p-5 rounded-xl space-y-3">
               <p className="text-sm text-slate-300">Waiting for players… ({game.players?.length || 1}/4 seated)</p>
               {me && <button className={`btn w-full !min-h-[52px] text-lg ${me.ready ? 'btn-ghost' : 'btn-gold'}`} onClick={toggleReady} disabled={busy}>{me.ready ? 'Ready ✓ · Click to unready' : 'I’m ready'}</button>}
-              {game.host === user?.id ? (
+              {String(game.host) === userId ? (
                 <button className="btn btn-gold w-full" onClick={start} disabled={busy || (game.players?.length || 1) < 2 || !game.players?.every((p) => p.ready)}>{(game.players?.length || 1) < 2 ? 'Need 2 players' : game.players?.every((p) => p.ready) ? 'Start Ludo' : 'Ready up to enable Start'}</button>
               ) : (
                 <p className="text-sm text-slate-400">Ready up above, then wait for the host to start.</p>

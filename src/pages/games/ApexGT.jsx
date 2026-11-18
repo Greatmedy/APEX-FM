@@ -8,6 +8,7 @@ import { Spinner, ErrorState, Field, Modal } from '../../components/ui';
 
 export default function ApexGT() {
   const { user } = useAuth();
+  const userId = String(user?.id ?? user?._id ?? '');
   const toast = useToast();
   const [balance, setBalance] = useState(null);
   const [venues, setVenues] = useState([]);
@@ -97,7 +98,7 @@ export default function ApexGT() {
   };
 
   const toggleReady = async () => {
-    const me = race?.participants?.find((p) => p.user === user?.id);
+    const me = race?.participants?.find((p) => String(p.user) === userId);
     setBusy(true);
     try {
       const { data } = await api.post(`/games/apex-gt/races/${race.id}/ready`, { ready: !me?.ready });
@@ -126,9 +127,9 @@ export default function ApexGT() {
   if (loading) return <Spinner label="Opening APEX GT" />;
   if (err && !race) return <ErrorState message={err} onRetry={refresh} />;
 
-  const me = race?.participants?.find((p) => p.user === user?.id);
+  const me = race?.participants?.find((p) => String(p.user) === userId);
   const allReady = race?.participants?.every((p) => p.ready);
-  const isHost = race?.host === user?.id;
+  const isHost = String(race?.host ?? '') === userId;
 
   return (
     <div className="space-y-5">
@@ -237,7 +238,7 @@ export default function ApexGT() {
                 <p className="font-display text-lg text-gold mb-2">🏁 Race results</p>
                 {raceResult.results?.map((r, i) => (
                   <div key={r.user} className={`flex justify-between text-sm py-1 ${r.win ? 'text-gold font-bold' : 'text-slate-300'}`}>
-                    <span>{i + 1}. {r.user === user?.id ? 'You' : r.user}</span>
+                    <span>{i + 1}. {String(r.user) === userId ? 'You' : r.user}</span>
                     <span>{r.win ? `+₦${(race.bet * race.participants.length).toLocaleString()}` : `-₦${race.bet.toLocaleString()}`} · {r.avgLap}ms</span>
                   </div>
                 ))}

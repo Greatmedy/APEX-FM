@@ -3,7 +3,7 @@
  * - Navigations: network first, falling back to the cached app shell when offline.
  * - Hashed build files (/assets/*) and icons: cache first (their names change when their content changes).
  */
-const VERSION = 'apexfm-v3';
+const VERSION = 'apexfm-v4';
 const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/logo.jpg'];
 
 self.addEventListener('install', (e) => {
