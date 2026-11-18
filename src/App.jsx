@@ -15,6 +15,10 @@ import Admin from './pages/Admin';
 import NotFound from './pages/NotFound';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import Games from './pages/games/Games';
+import ApexGT from './pages/games/ApexGT';
+import Whot from './pages/games/Whot';
+import Ludo from './pages/games/Ludo';
 
 function Guard({ children, adminOnly }) {
   const { user, loading } = useAuth();
@@ -46,6 +50,10 @@ export default function App() {
         <Route path="/club" element={<Club />} />
         <Route path="/tactics" element={<Tactics />} />
         <Route path="/fixtures" element={<Fixtures />} />
+        <Route path="/games" element={<Games />} />
+        <Route path="/games/apex-gt" element={<ApexGT />} />
+        <Route path="/games/whot" element={<Whot />} />
+        <Route path="/games/ludo" element={<Ludo />} />
         <Route path="/clubs/:id" element={<ClubPublic />} />
         <Route path="/league/:tier" element={<League />} />
         <Route path="/match/:id" element={<Match />} />

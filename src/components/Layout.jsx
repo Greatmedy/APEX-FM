@@ -8,9 +8,9 @@ import api from '../lib/api';
 import { getSocket } from '../lib/socket';
 import { ago, setServerNow } from '../lib/time';
 
-const NAV = [['/home', 'Home'], ['/club', 'My team'], ['/tactics', 'Tactics'], ['/fixtures', 'Fixtures'], ['/league/1', 'Leagues']];
+const NAV = [['/home', 'Home'], ['/club', 'My team'], ['/tactics', 'Tactics'], ['/fixtures', 'Fixtures'], ['/games', 'Games'], ['/league/1', 'Leagues']];
 const ic = (d) => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={d} /></svg>;
-const ICON = { '/home': 'M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z', '/club': 'M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z', '/tactics': 'M4 4h16v16H4zM12 4v16M4 12h16', '/fixtures': 'M7 3v3M17 3v3M4 8h16M5 5h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z', '/league/1': 'M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3' };
+const ICON = { '/home': 'M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z', '/club': 'M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z', '/tactics': 'M4 4h16v16H4zM12 4v16M4 12h16', '/fixtures': 'M7 3v3M17 3v3M4 8h16M5 5h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z', '/games': 'M6 9l6 2 6-2M6 13l6 2 6-2M6 17l6 2 6-2', '/league/1': 'M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3' };
 
 function Bell() {
   const [open, setOpen] = useState(false);
