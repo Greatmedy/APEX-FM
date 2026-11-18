@@ -56,13 +56,13 @@ export default function Whot() {
   // Auto-refresh open tables every 30 seconds
   useEffect(() => {
     if (!table) {
-      const t = setInterval(refresh, 30000);
+      const t = setInterval(refresh, 60000);
       return () => clearInterval(t);
     }
   }, [table, refresh]);
 
   useEffect(() => {
-    const onState = (data) => setTable(data);
+    const onState = (data) => api.get(`/games/whot/tables/${data.id}`).then(({ data: result }) => setTable(result.table)).catch(() => setTable(data));
     const onFinished = (data) => { toast(`Game over — winner received ₦${data.pot.toLocaleString()}!`, 'success'); refresh(); };
     socket.on('whot-state', onState);
     socket.on('whot-finished', onFinished);
@@ -100,6 +100,14 @@ export default function Whot() {
     } catch (e) { toast(errMsg(e), 'error'); } finally { setBusy(false); }
   };
 
+  const toggleReady = async () => {
+    setBusy(true);
+    try {
+      const { data } = await api.post(`/games/whot/tables/${table.id}/ready`, { ready: !me?.ready });
+      setTable(data.table);
+    } catch (e) { toast(errMsg(e), 'error'); } finally { setBusy(false); }
+  };
+
   const play = async (card) => {
     if (!table || table.state !== 'PLAY') return;
     try {
@@ -111,6 +119,9 @@ export default function Whot() {
 
   if (loading) return <Spinner label="Opening Whot" />;
   if (err && !table) return <ErrorState message={err} onRetry={refresh} />;
+
+  const me = table?.players?.find((p) => p.user === user?._id);
+  const allReady = table?.players?.every((p) => p.ready);
 
   return (
     <div className="space-y-5">
@@ -165,6 +176,7 @@ export default function Whot() {
                         <div className="w-8 h-8 rounded-full bg-orange-500/30 grid place-items-center font-bold text-sm mb-1">{(p.name || '?')[0].toUpperCase()}</div>
                         <p className="text-xs font-bold truncate">{p.name}</p>
                         <p className="text-[10px] text-slate-400">{p.handCount} card{p.handCount === 1 ? '' : 's'}</p>
+                        {table.state === 'WAITING' && <p className={`text-[10px] font-semibold ${p.ready ? 'text-green-400' : 'text-slate-400'}`}>{p.ready ? '✓ Ready' : 'Not ready'}</p>}
                       </>
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-white/5 grid place-items-center mb-1 text-slate-600">—</div>
@@ -178,13 +190,14 @@ export default function Whot() {
           {table.state === 'WAITING' && (
             <div className="glass p-5 rounded-xl space-y-3">
               <p className="text-sm text-slate-300">Waiting for players… ({table.players?.length || 1}/4 seated)</p>
+              {me && <button className={`btn w-full !min-h-[52px] text-lg ${me.ready ? 'btn-ghost' : 'btn-gold'}`} onClick={toggleReady} disabled={busy}>{me.ready ? 'Ready ✓ · Click to unready' : 'I’m ready'}</button>}
               {table.host === user?._id ? (
                 <>
-                  <p className="text-xs text-slate-400">Start with 2 players or wait for more. Each player escrows ₦{table.bet.toLocaleString()}.</p>
-                  <button className="btn btn-gold" onClick={start} disabled={busy || (table.players?.length || 1) < 2}>{(table.players?.length || 1) < 2 ? 'Need 2 players' : 'Start now'}</button>
+                  <p className="text-xs text-slate-400">Start with 2 or more ready players. Each player escrows ₦{table.bet.toLocaleString()}.</p>
+                  <button className="btn btn-gold w-full" onClick={start} disabled={busy || (table.players?.length || 1) < 2 || !allReady}>{(table.players?.length || 1) < 2 ? 'Need 2 players' : allReady ? 'Start Whot' : 'Ready up to enable Start'}</button>
                 </>
               ) : (
-                <p className="text-sm text-slate-400">Waiting for the host to start…</p>
+                <p className="text-sm text-slate-400">Ready up above, then wait for the host to start.</p>
               )}
             </div>
           )}

@@ -39,7 +39,7 @@ export default function Ludo() {
   // Auto-refresh open games every 30 seconds
   useEffect(() => {
     if (!game) {
-      const t = setInterval(refresh, 30000);
+      const t = setInterval(refresh, 60000);
       return () => clearInterval(t);
     }
   }, [game, refresh]);
@@ -78,6 +78,14 @@ export default function Ludo() {
       const { data } = await api.post(`/games/ludo/games/${game.id}/start`);
       setGame(data.game);
       toast('Game started!', 'success');
+    } catch (e) { toast(errMsg(e), 'error'); } finally { setBusy(false); }
+  };
+
+  const toggleReady = async () => {
+    setBusy(true);
+    try {
+      const { data } = await api.post(`/games/ludo/games/${game.id}/ready`, { ready: !me?.ready });
+      setGame(data.game);
     } catch (e) { toast(errMsg(e), 'error'); } finally { setBusy(false); }
   };
 
@@ -161,6 +169,7 @@ export default function Ludo() {
                       <span key={i} className={`w-4 h-4 rounded-full border ${t >= 0 ? '' : 'opacity-30'}`} style={{ background: t >= 0 ? COLOR[p.color] : 'transparent', borderColor: COLOR[p.color] }} />
                     ))}
                   </div>
+                  {game.state === 'WAITING' && <p className={`text-[10px] mt-1 font-semibold ${p.ready ? 'text-green-400' : 'text-slate-400'}`}>{p.ready ? '✓ Ready' : 'Not ready'}</p>}
                 </div>
               ))}
             </div>
@@ -201,10 +210,11 @@ export default function Ludo() {
           {game.state === 'WAITING' && (
             <div className="glass p-5 rounded-xl space-y-3">
               <p className="text-sm text-slate-300">Waiting for players… ({game.players?.length || 1}/4 seated)</p>
+              {me && <button className={`btn w-full !min-h-[52px] text-lg ${me.ready ? 'btn-ghost' : 'btn-gold'}`} onClick={toggleReady} disabled={busy}>{me.ready ? 'Ready ✓ · Click to unready' : 'I’m ready'}</button>}
               {game.host === user?._id ? (
-                <button className="btn btn-gold" onClick={start} disabled={busy}>{(game.players?.length || 1) < 2 ? 'Need 2 players' : 'Start now'}</button>
+                <button className="btn btn-gold w-full" onClick={start} disabled={busy || (game.players?.length || 1) < 2 || !game.players?.every((p) => p.ready)}>{(game.players?.length || 1) < 2 ? 'Need 2 players' : game.players?.every((p) => p.ready) ? 'Start Ludo' : 'Ready up to enable Start'}</button>
               ) : (
-                <p className="text-sm text-slate-400">Waiting for the host to start…</p>
+                <p className="text-sm text-slate-400">Ready up above, then wait for the host to start.</p>
               )}
             </div>
           )}

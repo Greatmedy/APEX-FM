@@ -22,6 +22,7 @@ export default function ApexGT() {
   const [lap, setLap] = useState(0);
   const [raceResult, setRaceResult] = useState(null);
   const [aiModal, setAiModal] = useState(false);
+  const [aiCount, setAiCount] = useState(3);
   const socket = getSocket();
 
   const refresh = useCallback(async () => {
@@ -39,39 +40,49 @@ export default function ApexGT() {
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  // Auto-refresh open races every 30 seconds
+  // Refresh the open race list once per minute.
   useEffect(() => {
     if (!race) {
-      const t = setInterval(refresh, 30000);
+      const t = setInterval(refresh, 60000);
       return () => clearInterval(t);
     }
   }, [race, refresh]);
 
   useEffect(() => {
     const onCountdown = (data) => { setCountdown(data.countdown); };
-    const onStarted = () => { setCountdown(null); setRaceResult(null); toast('GO! Race started.', 'success'); };
+    const onRaceState = (data) => setRace(data);
+    const onStarted = () => { setCountdown(null); setRace((current) => current && { ...current, state: 'STARTED' }); setRaceResult(null); toast('GO! Race started.', 'success'); };
     const onLap = (data) => { setLap(data.lap); };
     const onFinished = (data) => { setRaceResult(data); setLap(3); toast('Race finished!', 'success'); refresh(); };
     socket.on('race-countdown', onCountdown);
+    socket.on('race-state', onRaceState);
     socket.on('race-started', onStarted);
     socket.on('race-lap', onLap);
     socket.on('race-finished', onFinished);
     return () => {
       socket.off('race-countdown', onCountdown);
+      socket.off('race-state', onRaceState);
       socket.off('race-started', onStarted);
       socket.off('race-lap', onLap);
       socket.off('race-finished', onFinished);
     };
   }, [socket, toast, refresh]);
 
-  const create = async () => {
+  const create = async (withAI = false) => {
     if (!venue) return toast('Pick a venue.', 'error');
+    setAiModal(false);
     setBusy(true);
     try {
       const { data } = await api.post('/games/apex-gt/create', { venue, bet });
       setRace(data.race);
       socket.emit('race:join-room', data.race.id);
-      toast('Race created. Invite racers or add AI!', 'success');
+      if (withAI) {
+        const { data: aiData } = await api.post(`/games/apex-gt/races/${data.race.id}/start-ai`, { count: aiCount });
+        setRace(aiData.race);
+        toast('AI race started!', 'success');
+      } else {
+        toast('Race created. Ready up, then start when you are set.', 'success');
+      }
     } catch (e) { toast(errMsg(e), 'error'); } finally { setBusy(false); }
   };
 
@@ -104,8 +115,9 @@ export default function ApexGT() {
 
   const startWithAI = async () => {
     setBusy(true);
+    setAiModal(false);
     try {
-      const { data } = await api.post(`/games/apex-gt/races/${race.id}/start-ai`);
+      const { data } = await api.post(`/games/apex-gt/races/${race.id}/start-ai`, { count: aiCount });
       setRace(data.race);
       toast('AI racers added! Starting...', 'success');
     } catch (e) { toast(errMsg(e), 'error'); } finally { setBusy(false); }
@@ -140,7 +152,10 @@ export default function ApexGT() {
             <Field label="Wager per racer (₦5,000 – ₦100,000)" hint="Optional head-to-head. Winner takes the whole pot. Virtual naira only.">
               <input type="number" className="input" min={5000} max={100000} step={1000} value={bet} onChange={(e) => setBet(Number(e.target.value))} />
             </Field>
-            <button className="btn btn-gold w-full" onClick={create} disabled={busy || bet < 5000 || bet > 100000}>{busy ? 'Creating…' : 'Create race'}</button>
+            <div className="grid sm:grid-cols-2 gap-2">
+              <button className="btn btn-ghost w-full" onClick={() => setAiModal(true)} disabled={busy || bet < 5000 || bet > 100000}>Race with AI</button>
+              <button className="btn btn-gold w-full" onClick={() => create()} disabled={busy || bet < 5000 || bet > 100000}>{busy ? 'Creating…' : 'Create race'}</button>
+            </div>
           </div>
           <div className="glass p-5 rounded-xl">
             <h2 className="font-display text-xl mb-3">Open races</h2>
@@ -197,18 +212,18 @@ export default function ApexGT() {
                     Race with AI
                   </button>
                 )}
-                {isHost && race.participants.length > 1 && (
-                  <button className="btn btn-gold w-full" onClick={start} disabled={busy || !allReady}>
-                    {allReady ? 'Start race' : 'Waiting for all to be ready…'}
+                {me && race.state === 'WALLOON' && (
+                  <button className={`btn w-full mt-2 !min-h-[52px] text-lg ${me.ready ? 'btn-ghost' : 'btn-gold'}`} onClick={toggleReady} disabled={busy}>
+                    {me.ready ? 'Ready ✓ · Click to unready' : 'I’m ready'}
                   </button>
                 )}
-                {me && race.state === 'WALLOON' && (
-                  <button className="btn btn-ghost w-full mt-2" onClick={toggleReady} disabled={busy}>
-                    {me.ready ? 'Un-ready' : 'Ready up'}
+                {isHost && (
+                  <button className="btn btn-gold w-full" onClick={start} disabled={busy || !allReady}>
+                    {allReady ? 'Start race' : 'Ready up to enable Start race'}
                   </button>
                 )}
                 {!isHost && race.participants.length > 1 && (
-                  <p className="text-sm text-slate-400 text-center">Waiting for the host to start…</p>
+                  <p className="text-sm text-slate-400 text-center">Use “I’m ready” above. Waiting for the host to start.</p>
                 )}
               </div>
             )}
@@ -239,13 +254,13 @@ export default function ApexGT() {
         <div className="space-y-4">
           <p className="text-sm text-slate-300">Add AI racers to fill the grid. You can race with 1-3 AI opponents.</p>
           <Field label="Number of AI racers">
-            <select className="input" value={3} onChange={(e) => {}}>
+            <select className="input" value={aiCount} onChange={(e) => setAiCount(Number(e.target.value))}>
               <option value="1">1 AI racer</option>
               <option value="2">2 AI racers</option>
-              <option value="3" selected>3 AI racers</option>
+              <option value="3">3 AI racers</option>
             </select>
           </Field>
-          <button className="btn btn-gold w-full" onClick={startWithAI} disabled={busy}>{busy ? 'Adding AI…' : 'Start race with AI'}</button>
+          <button className="btn btn-gold w-full" onClick={() => race ? startWithAI() : create(true)} disabled={busy || !venue || bet < 5000 || bet > 100000}>{busy ? 'Starting…' : 'Start race with AI'}</button>
         </div>
       </Modal>
     </div>
