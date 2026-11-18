@@ -4,7 +4,7 @@ import api, { errMsg } from '../../lib/api';
 import { getSocket } from '../../lib/socket';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { Spinner, ErrorState, Field } from '../../components/ui';
+import { Spinner, ErrorState, Field, Modal } from '../../components/ui';
 
 export default function ApexGT() {
   const { user } = useAuth();
@@ -21,6 +21,7 @@ export default function ApexGT() {
   const [countdown, setCountdown] = useState(null);
   const [lap, setLap] = useState(0);
   const [raceResult, setRaceResult] = useState(null);
+  const [aiModal, setAiModal] = useState(false);
   const socket = getSocket();
 
   const refresh = useCallback(async () => {
@@ -62,7 +63,7 @@ export default function ApexGT() {
       const { data } = await api.post('/games/apex-gt/create', { venue, bet });
       setRace(data.race);
       socket.emit('race:join-room', data.race.id);
-      toast('Race created. Invite a racer!', 'success');
+      toast('Race created. Invite racers or add AI!', 'success');
     } catch (e) { toast(errMsg(e), 'error'); } finally { setBusy(false); }
   };
 
@@ -82,6 +83,7 @@ export default function ApexGT() {
     try {
       const { data } = await api.post(`/games/apex-gt/races/${race.id}/ready`, { ready: !me?.ready });
       setRace(data.race);
+      toast(me?.ready ? 'Not ready' : 'Ready!', 'success');
     } catch (e) { toast(errMsg(e), 'error'); } finally { setBusy(false); }
   };
 
@@ -92,11 +94,21 @@ export default function ApexGT() {
     } catch (e) { toast(errMsg(e), 'error'); } finally { setBusy(false); }
   };
 
+  const startWithAI = async () => {
+    setBusy(true);
+    try {
+      const { data } = await api.post(`/games/apex-gt/races/${race.id}/start-ai`);
+      setRace(data.race);
+      toast('AI racers added! Starting...', 'success');
+    } catch (e) { toast(errMsg(e), 'error'); } finally { setBusy(false); }
+  };
+
   if (loading) return <Spinner label="Opening APEX GT" />;
   if (err && !race) return <ErrorState message={err} onRetry={refresh} />;
 
   const me = race?.participants?.find((p) => p.user === user?._id);
   const allReady = race?.participants?.every((p) => p.ready);
+  const isHost = race?.host === user?._id;
 
   return (
     <div className="space-y-5">
@@ -172,20 +184,30 @@ export default function ApexGT() {
             )}
             {race.state === 'WALLOON' && (
               <div className="mt-4 space-y-2">
-                {race.host === user?._id ? (
-                  <>
-                    <button className="btn btn-gold w-full" onClick={start} disabled={busy || !allReady || race.participants.length < 2}>
-                      {race.participants.length < 2 ? 'Need 2 racers' : !allReady ? 'Waiting for all to be ready…' : 'Start race'}
-                    </button>
-                    <p className="text-xs text-slate-400 text-center">Host only. Every racer must press Ready.</p>
-                  </>
-                ) : (
+                {isHost && race.participants.length === 1 && (
+                  <button className="btn btn-gold w-full" onClick={() => setAiModal(true)} disabled={busy}>
+                    Race with AI
+                  </button>
+                )}
+                {isHost && race.participants.length > 1 && (
+                  <button className="btn btn-gold w-full" onClick={start} disabled={busy || !allReady}>
+                    {allReady ? 'Start race' : 'Waiting for all to be ready…'}
+                  </button>
+                )}
+                {me && race.state === 'WALLOON' && (
+                  <button className="btn btn-ghost w-full mt-2" onClick={toggleReady} disabled={busy}>
+                    {me.ready ? 'Un-ready' : 'Ready up'}
+                  </button>
+                )}
+                {!isHost && race.participants.length > 1 && (
                   <p className="text-sm text-slate-400 text-center">Waiting for the host to start…</p>
                 )}
               </div>
             )}
             {me && race.state === 'WALLOON' && (
-              <button className="btn btn-ghost w-full mt-3" onClick={toggleReady} disabled={busy}>{me.ready ? 'Un-ready' : 'Ready up'}</button>
+              <button className="btn btn-ghost w-full mt-3" onClick={() => { setRace(null); setLap(0); setRaceResult(null); refresh(); }} disabled={busy}>
+                Leave race
+              </button>
             )}
             {raceResult && (
               <div className="mt-4 glass p-4 rounded-xl">
@@ -204,6 +226,20 @@ export default function ApexGT() {
       )}
 
       <Link to="/games" className="block text-center text-sm text-slate-400 hover:text-white">← Back to Games Lobby</Link>
+
+      <Modal open={aiModal} onClose={() => setAiModal(false)} title="Race with AI">
+        <div className="space-y-4">
+          <p className="text-sm text-slate-300">Add AI racers to fill the grid. You can race with 1-3 AI opponents.</p>
+          <Field label="Number of AI racers">
+            <select className="input" value={3} onChange={(e) => {}}>
+              <option value="1">1 AI racer</option>
+              <option value="2">2 AI racers</option>
+              <option value="3" selected>3 AI racers</option>
+            </select>
+          </Field>
+          <button className="btn btn-gold w-full" onClick={startWithAI} disabled={busy}>{busy ? 'Adding AI…' : 'Start race with AI'}</button>
+        </div>
+      </Modal>
     </div>
   );
 }
