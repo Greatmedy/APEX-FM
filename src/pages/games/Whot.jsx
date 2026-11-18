@@ -120,7 +120,7 @@ export default function Whot() {
   if (loading) return <Spinner label="Opening Whot" />;
   if (err && !table) return <ErrorState message={err} onRetry={refresh} />;
 
-  const me = table?.players?.find((p) => p.user === user?._id);
+  const me = table?.players?.find((p) => p.user === user?.id);
   const allReady = table?.players?.every((p) => p.ready);
 
   return (
@@ -191,7 +191,7 @@ export default function Whot() {
             <div className="glass p-5 rounded-xl space-y-3">
               <p className="text-sm text-slate-300">Waiting for players… ({table.players?.length || 1}/4 seated)</p>
               {me && <button className={`btn w-full !min-h-[52px] text-lg ${me.ready ? 'btn-ghost' : 'btn-gold'}`} onClick={toggleReady} disabled={busy}>{me.ready ? 'Ready ✓ · Click to unready' : 'I’m ready'}</button>}
-              {table.host === user?._id ? (
+              {table.host === user?.id ? (
                 <>
                   <p className="text-xs text-slate-400">Start with 2 or more ready players. Each player escrows ₦{table.bet.toLocaleString()}.</p>
                   <button className="btn btn-gold w-full" onClick={start} disabled={busy || (table.players?.length || 1) < 2 || !allReady}>{(table.players?.length || 1) < 2 ? 'Need 2 players' : allReady ? 'Start Whot' : 'Ready up to enable Start'}</button>
@@ -215,14 +215,14 @@ export default function Whot() {
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-slate-400">Turn</p>
-                  <p className="text-sm font-bold text-orange-400">{table.turnUser === user?._id ? 'You!' : table.players?.find(p => p.user === table.turnUser)?.name || '—'}</p>
+                  <p className="text-sm font-bold text-orange-400">{table.turnUser === user?.id ? 'You!' : table.players?.find(p => p.user === table.turnUser)?.name || '—'}</p>
                 </div>
               </div>
               <p className="text-xs text-slate-400 mb-2">Your hand ({table.myHand?.length || 0})</p>
               <div className="flex flex-wrap gap-2">
                 {(table.myHand || []).map((c) => <Card key={c.id} card={c} onClick={() => play(c)} />)}
               </div>
-              <button className="btn btn-ghost mt-4" onClick={() => play(null)} disabled={!table.marketCount || table.turnUser !== user?._id}>
+              <button className="btn btn-ghost mt-4" onClick={() => play(null)} disabled={!table.marketCount || table.turnUser !== user?.id}>
                 Draw from market ({table.marketCount} left)
               </button>
             </div>
