@@ -36,6 +36,14 @@ export default function Ludo() {
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  // Auto-refresh open games every 30 seconds
+  useEffect(() => {
+    if (!game) {
+      const t = setInterval(refresh, 30000);
+      return () => clearInterval(t);
+    }
+  }, [game, refresh]);
+
   useEffect(() => {
     const onState = (data) => { setGame(data); setDie(data.lastDie); setRolled(false); };
     const onFinished = (data) => { toast('Game over! Someone brought all four tokens home.', 'success'); refresh(); };
@@ -194,7 +202,7 @@ export default function Ludo() {
             <div className="glass p-5 rounded-xl space-y-3">
               <p className="text-sm text-slate-300">Waiting for players… ({game.players?.length || 1}/4 seated)</p>
               {game.host === user?._id ? (
-                <button className="btn btn-gold" onClick={start} disabled={busy || (game.players?.length || 1) < 2}>{(game.players?.length || 1) < 2 ? 'Need 2 players' : 'Start now'}</button>
+                <button className="btn btn-gold" onClick={start} disabled={busy}>{(game.players?.length || 1) < 2 ? 'Need 2 players' : 'Start now'}</button>
               ) : (
                 <p className="text-sm text-slate-400">Waiting for the host to start…</p>
               )}

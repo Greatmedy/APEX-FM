@@ -39,6 +39,14 @@ export default function ApexGT() {
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  // Auto-refresh open races every 30 seconds
+  useEffect(() => {
+    if (!race) {
+      const t = setInterval(refresh, 30000);
+      return () => clearInterval(t);
+    }
+  }, [race, refresh]);
+
   useEffect(() => {
     const onCountdown = (data) => { setCountdown(data.countdown); };
     const onStarted = () => { setCountdown(null); setRaceResult(null); toast('GO! Race started.', 'success'); };

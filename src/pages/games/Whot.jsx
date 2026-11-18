@@ -53,6 +53,14 @@ export default function Whot() {
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  // Auto-refresh open tables every 30 seconds
+  useEffect(() => {
+    if (!table) {
+      const t = setInterval(refresh, 30000);
+      return () => clearInterval(t);
+    }
+  }, [table, refresh]);
+
   useEffect(() => {
     const onState = (data) => setTable(data);
     const onFinished = (data) => { toast(`Game over — winner received ₦${data.pot.toLocaleString()}!`, 'success'); refresh(); };
