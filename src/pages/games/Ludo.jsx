@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import api, { errMsg } from '../../lib/api';
 import { getSocket } from '../../lib/socket';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { Spinner, ErrorState, Field } from '../../components/ui';
+import { LudoBoard } from '../../components/games/LudoBoard';
 
 const COLOR = { red: '#E63946', yellow: '#F4A261', green: '#2A9D8F', blue: '#457B9D' };
 const COLOR_NAME = { red: 'Red', yellow: 'Yellow', green: 'Green', blue: 'Blue' };
@@ -22,6 +23,7 @@ export default function Ludo() {
   const [busy, setBusy] = useState(false);
   const [die, setDie] = useState(null);
   const [rolled, setRolled] = useState(false);
+  const [lastRollInfo, setLastRollInfo] = useState(null);
   const socket = getSocket();
 
   const refresh = useCallback(async () => {
@@ -46,7 +48,14 @@ export default function Ludo() {
   }, [game, refresh]);
 
   useEffect(() => {
-    const onState = (data) => { setGame(data); setDie(data.lastDie); setRolled(false); };
+    const onState = (data) => {
+      setGame(data);
+      setDie(data.lastDie);
+      setRolled(false);
+      if (data.lastRoll) {
+        setLastRollInfo(data.lastRoll);
+      }
+    };
     const onFinished = (data) => { toast('Game over! Someone brought all four tokens home.', 'success'); refresh(); };
     socket.on('ludo-state', onState);
     socket.on('ludo-finished', onFinished);
@@ -115,6 +124,10 @@ export default function Ludo() {
 
   const me = game?.players?.find((p) => String(p.user) === userId);
   const myTurn = String(game?.players?.[game.turnIndex]?.user ?? '') === userId;
+  const myColor = me?.color || 'red';
+
+  // Check for six streak
+  const sixStreak = game?.sixStreak || 0;
 
   return (
     <div className="space-y-5">
@@ -160,7 +173,7 @@ export default function Ludo() {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {game.players?.map((p) => (
-                <div key={p.user} className={`rounded-xl p-3 border ${p.isTurn ? 'ring-2' : ''}`} style={{ borderColor: COLOR[p.color], ['--tw-ring-color' ]: COLOR[p.color] }}>
+                <div key={p.user} className={`rounded-xl p-3 border ${p.isTurn ? 'ring-2' : ''}`} style={{ borderColor: COLOR[p.color], ['--tw-ring-color']: COLOR[p.color] }}>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="w-3 h-3 rounded-full" style={{ background: COLOR[p.color] }} />
                     <p className="text-xs font-bold truncate">{p.name}{String(p.user) === userId ? ' (you)' : ''}</p>
@@ -174,44 +187,25 @@ export default function Ludo() {
                 </div>
               ))}
             </div>
-            {/* Board */}
-            <div className="mt-4 aspect-square max-w-[380px] mx-auto rounded-xl border-2 p-3" style={{ borderColor: '#1D3557', background: '#FFF8F0' }}>
-              <div className="grid grid-cols-3 h-full">
-                <div className="flex items-center justify-center" style={{ background: COLOR.red }} />
-                <div className="grid grid-cols-6 gap-1 p-1 bg-[#FFF8F0]">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={`t${i}`} className={`rounded ${(i % 8) === 0 ? 'ring-2 ring-amber-400' : ''}`} style={{ background: '#E8D8C4' }} />
-                  ))}
-                </div>
-                <div className="flex items-center justify-center" style={{ background: COLOR.yellow }} />
-                <div className="grid grid-rows-6 gap-1 p-1 bg-[#FFF8F0]">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={`l${i}`} className={`rounded ${(i % 8) === 0 ? 'ring-2 ring-amber-400' : ''}`} style={{ background: '#E8D8C4' }} />
-                  ))}
-                </div>
-                <div className="flex items-center justify-center" style={{ background: '#1D3557' }}>
-                  <div className="w-16 h-16 rounded-full bg-white/10 text-center text-[10px] text-white/70 grid place-items-center">HOME</div>
-                </div>
-                <div className="grid grid-rows-6 gap-1 p-1 bg-[#FFF8F0]">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={`r${i}`} className={`rounded ${(i % 8) === 0 ? 'ring-2 ring-amber-400' : ''}`} style={{ background: '#E8D8C4' }} />
-                  ))}
-                </div>
-                <div className="flex items-center justify-center" style={{ background: COLOR.green }} />
-                <div className="grid grid-cols-6 gap-1 p-1 bg-[#FFF8F0]">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={`b${i}`} className={`rounded ${(i % 8) === 0 ? 'ring-2 ring-amber-400' : ''}`} style={{ background: '#E8D8C4' }} />
-                  ))}
-                </div>
-                <div className="flex items-center justify-center" style={{ background: COLOR.blue }} />
-              </div>
+            {/* Interactive Board */}
+            <div className="mt-4 aspect-square max-w-[420px] mx-auto rounded-xl border-2 p-3" style={{ borderColor: '#1D3557', background: '#FFF8F0' }}>
+              <LudoBoard
+                game={game}
+                myColor={myColor}
+                myTokens={me?.tokens || [-1, -1, -1, -1]}
+                die={die}
+                myTurn={myTurn}
+                rolled={rolled}
+                onTokenClick={move}
+                disabled={busy || !myTurn || !rolled}
+              />
             </div>
           </div>
 
           {game.state === 'WAITING' && (
             <div className="glass p-5 rounded-xl space-y-3">
               <p className="text-sm text-slate-300">Waiting for players… ({game.players?.length || 1}/4 seated)</p>
-              {me && <button className={`btn w-full !min-h-[52px] text-lg ${me.ready ? 'btn-ghost' : 'btn-gold'}`} onClick={toggleReady} disabled={busy}>{me.ready ? 'Ready ✓ · Click to unready' : 'I’m ready'}</button>}
+              {me && <button className={`btn w-full !min-h-[52px] text-lg ${me.ready ? 'btn-ghost' : 'btn-gold'}`} onClick={toggleReady} disabled={busy}>{me.ready ? 'Ready ✓ · Click to unready' : "I'm ready"}</button>}
               {String(game.host) === userId ? (
                 <button className="btn btn-gold w-full" onClick={start} disabled={busy || (game.players?.length || 1) < 2 || !game.players?.every((p) => p.ready)}>{(game.players?.length || 1) < 2 ? 'Need 2 players' : game.players?.every((p) => p.ready) ? 'Start Ludo' : 'Ready up to enable Start'}</button>
               ) : (
@@ -230,30 +224,38 @@ export default function Ludo() {
                     <p className="text-sm font-bold">{myTurn ? 'Your turn!' : game.players?.[game.turnIndex]?.name || '—'}</p>
                   </div>
                 </div>
-                {myTurn && !rolled && <button className="btn btn-gold" onClick={roll} disabled={busy}>Roll die</button>}
-                {myTurn && rolled && <p className="text-sm text-green-400 animate-pulse">Now move a token →</p>}
-              </div>
-              {me && myTurn && rolled && (
-                <div className="space-y-2">
-                  <p className="text-xs text-slate-400">Tap a token to move:</p>
-                  <div className="flex gap-2">
-                    {me.tokens.map((t, i) => (
-                      <button key={i} onClick={() => move(i)} disabled={busy}
-                        className={`w-12 h-12 rounded-full border-2 font-bold text-xs grid place-items-center transition ${t >= 0 ? 'hover:scale-105' : 'opacity-40'}`}
-                        style={{ borderColor: COLOR[me.color], background: t >= 0 ? COLOR[me.color] : 'transparent', color: t >= 0 ? '#fff' : COLOR[me.color] }}>
-                        {t >= 0 ? (t + 1) : 'Yard'}
-                      </button>
-                    ))}
+                {sixStreak > 0 && (
+                  <div className="text-xs text-amber-400 bg-amber-500/10 px-2 py-1 rounded">
+                    ⚠ {sixStreak} six{'s' in sixStreak ? '' : ''} in a row!
                   </div>
-                </div>
+                )}
+              </div>
+              {myTurn && !rolled && (
+                <button className="btn btn-gold w-full sm:w-auto" onClick={roll} disabled={busy}>
+                  Roll die
+                </button>
               )}
-              {!myTurn && <p className="text-sm text-slate-400">Waiting for {game.players?.[game.turnIndex]?.name} to roll…</p>}
+              {myTurn && rolled && (
+                <p className="text-sm text-green-400 animate-pulse">Now tap a highlighted token to move →</p>
+              )}
+              {!myTurn && (
+                <p className="text-sm text-slate-400">Waiting for {game.players?.[game.turnIndex]?.name} to roll…</p>
+              )}
+              {lastRollInfo && (
+                <p className="text-xs text-slate-500">Last roll: {lastRollInfo.die} by {lastRollInfo.user === userId ? 'you' : lastRollInfo.user}</p>
+              )}
             </div>
           )}
 
           {game.state === 'FINISHED' && (
             <div className="glass p-5 rounded-xl text-center">
               <p className="font-display text-2xl text-gold mb-2">🏆 Game over</p>
+              {game.winner && (
+                <p className="text-sm text-slate-300 mb-4">
+                  {game.winner === userId ? 'You won!' : `${game.winner} won the game!`}
+                  {game.bet > 0 && ` Pot: ₦${(game.bet * game.players.length).toLocaleString()}`}
+                </p>
+              )}
               <button className="btn btn-ghost mt-4" onClick={() => { setGame(null); refresh(); }}>Back to games</button>
             </div>
           )}
