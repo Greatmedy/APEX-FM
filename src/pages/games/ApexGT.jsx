@@ -159,10 +159,10 @@ export default function ApexGT() {
       setRaceState('STARTED');
       startedAtRef.current = data.startedAt || Date.now();
 
-      // Initialize 3D scene with track data
-      if (data.trackPoints && canvasRef.current) {
-        initializeRaceScene(data.trackPoints, data.laps || 3);
-      }
+      // Store track data for useEffect to pick up
+      trackPointsRef.current = data.trackPoints;
+      lapsRef.current = data.laps || 3;
+
       toast('GO! Race started.', 'success');
     };
 
@@ -222,6 +222,38 @@ export default function ApexGT() {
       socket.off('race-finish');
     };
   }, [socket, toast, refresh, userId]);
+
+  // Initialize 3D scene when canvas is available and race starts
+  useEffect(() => {
+    if (raceState === 'STARTED' && canvasRef.current && trackPointsRef.current.length > 0) {
+      initializeRaceScene(trackPointsRef.current, lapsRef.current);
+    }
+
+    // Cleanup on race end or component unmount
+    return () => {
+      if (raceState === 'FINISHED' || raceState === 'WALLOON') {
+        cancelAnimationFrame(animationRef.current);
+        if (sceneRef.current) {
+          Object.values(carMeshesRef.current).forEach(mesh => {
+            sceneRef.current.remove(mesh);
+            mesh.traverse(obj => {
+              if (obj.geometry) obj.geometry.dispose();
+              if (obj.material) {
+                if (Array.isArray(obj.material)) {
+                  obj.material.forEach(m => m.dispose());
+                } else {
+                  obj.material.dispose();
+                }
+              }
+            });
+          });
+          carMeshesRef.current = {};
+        }
+        rendererRef.current?.dispose();
+        rendererRef.current?.forceContextLoss?.();
+      }
+    };
+  }, [raceState, race]);
 
   // ========== 3D SCENE INITIALIZATION ==========
   const initializeRaceScene = useCallback((trackPoints, laps) => {
