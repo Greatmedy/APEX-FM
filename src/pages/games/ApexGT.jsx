@@ -273,6 +273,10 @@ export default function ApexGT() {
       alpha: false,
       powerPreference: 'high-performance',
     });
+    // Set initial size explicitly
+    const initialWidth = canvasRef.current.clientWidth;
+    const initialHeight = canvasRef.current.clientHeight;
+    renderer.setSize(initialWidth, initialHeight, false);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -282,7 +286,7 @@ export default function ApexGT() {
     rendererRef.current = renderer;
 
     // Camera
-    const camera = new THREE.PerspectiveCamera(70, canvasRef.current.clientWidth / canvasRef.current.clientHeight, 0.1, 5000);
+    const camera = new THREE.PerspectiveCamera(70, initialWidth / initialHeight, 0.1, 5000);
     cameraRef.current = camera;
 
     // Camera rig (chase camera)
@@ -290,6 +294,13 @@ export default function ApexGT() {
     cameraRig.add(camera);
     scene.add(cameraRig);
     cameraRigRef.current = cameraRig;
+
+    // Position camera at start line initially
+    if (trackPoints.length > 0) {
+      const startPos = trackPoints[0];
+      cameraRig.position.set(startPos.x, 15, startPos.z + 20);
+      camera.lookAt(startPos.x, 0, startPos.z);
+    }
 
     // Create car meshes for all participants
     race?.participants?.forEach((p, i) => {
@@ -408,6 +419,13 @@ export default function ApexGT() {
 
       // Camera rotation - look at car with offset
       cameraRigRef.current.rotation.y += ((targetAngle - Math.PI / 2) - cameraRigRef.current.rotation.y) * 0.05;
+    } else if (raceState === 'STARTED' && trackPointsRef.current.length > 0) {
+      // Fallback camera at start line until we get car data
+      const center = trackPointsRef.current[0];
+      cameraRigRef.current.position.x += (center.x - cameraRigRef.current.position.x) * 0.05;
+      cameraRigRef.current.position.z += (center.z + 20 - cameraRigRef.current.position.z) * 0.05;
+      cameraRigRef.current.position.y += (15 - cameraRigRef.current.position.y) * 0.05;
+      cameraRef.current.lookAt(center.x, 0, center.z);
     }
 
     // Countdown camera (before race starts)
@@ -420,6 +438,7 @@ export default function ApexGT() {
       }
     }
 
+    // Force render even if no cars yet
     rendererRef.current.render(sceneRef.current, cameraRef.current);
     animationRef.current = requestAnimationFrame(animate);
   }, [raceState, countdown, race, serverCars, myCarData, inputMode, gamepadConnected, getKeyboardInput, getGamepadInput, socket]);
