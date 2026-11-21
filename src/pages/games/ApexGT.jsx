@@ -274,12 +274,6 @@ export default function ApexGT() {
     };
   }, [socket, toast, refresh, userId]);
 
-  // Initialize 3D scene when canvas is available and race starts
-  useEffect(() => {
-    if (raceState !== 'STARTED' || !canvasRef.current || trackPointsRef.current.length === 0) return undefined;
-    return initializeRaceScene(trackPointsRef.current, lapsRef.current);
-  }, [raceState, race, initializeRaceScene]);
-
   // ========== 3D SCENE INITIALIZATION ==========
   const initializeRaceScene = useCallback((trackPoints, laps) => {
     if (!canvasRef.current) return;
@@ -371,6 +365,12 @@ export default function ApexGT() {
       cameraRigRef.current = null;
     };
   }, [race]);
+
+  // Initialize the 3D scene after its callback is declared.
+  useEffect(() => {
+    if (raceState !== 'STARTED' || !canvasRef.current || trackPointsRef.current.length === 0) return undefined;
+    return initializeRaceScene(trackPointsRef.current, lapsRef.current);
+  }, [raceState, race, initializeRaceScene]);
 
   // ========== RENDER LOOP ==========
   const animate = useCallback(() => {
