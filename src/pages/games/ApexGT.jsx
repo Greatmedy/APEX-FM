@@ -60,6 +60,9 @@ export default function ApexGT() {
   const [myLaps, setMyLaps] = useState(0);
   const [mySpeed, setMySpeed] = useState(0);
   const [myProgress, setMyProgress] = useState(0);
+  const touchInputRef = useRef({ steer: 0, accelerate: 0, brake: 0, nitro: false });
+  const frameStateRef = useRef({});
+  frameStateRef.current = { race, raceState, countdown, serverCars, myCarData, inputMode, gamepadConnected };
 
   const socket = getSocket();
 
@@ -87,6 +90,45 @@ export default function ApexGT() {
     }
   }, [race, refresh]);
 
+  useEffect(() => {
+    if (!race?.id) return undefined;
+    const joinRoom = () => socket.emit('race:join-room', race.id);
+    if (socket.connected) joinRoom();
+    socket.on('connect', joinRoom);
+    return () => {
+      socket.off('connect', joinRoom);
+      socket.emit('race:leave-room', race.id);
+    };
+  }, [race?.id, socket]);
+
+  const enterRaceDisplay = () => {
+    const fullscreen = document.documentElement.requestFullscreen?.();
+    fullscreen?.catch(() => {});
+    const orientationLock = window.screen?.orientation?.lock?.('landscape');
+    orientationLock?.catch(() => {});
+  };
+
+  const returnToLobby = () => {
+    window.clearTimeout(returnToLobbyRef.current);
+    setRace(null);
+    setRaceResult(null);
+    setRaceState('WALLOON');
+    setCountdown(null);
+    setServerCars([]);
+    setMyCarData(null);
+    touchInputRef.current = { steer: 0, accelerate: 0, brake: 0, nitro: false };
+    window.screen?.orientation?.unlock?.();
+    if (document.fullscreenElement) document.exitFullscreen?.();
+    refresh();
+  };
+
+  const returnToLobbyRef = useRef(null);
+  useEffect(() => () => {
+    window.clearTimeout(returnToLobbyRef.current);
+    window.screen?.orientation?.unlock?.();
+    if (document.fullscreenElement) document.exitFullscreen?.();
+  }, []);
+
   const create = async (withAI = false) => {
     if (!venue) return toast('Pick a venue.', 'error');
     setAiModal(false);
@@ -94,10 +136,12 @@ export default function ApexGT() {
     try {
       const { data } = await api.post('/games/apex-gt/create', { venue, bet });
       setRace(data.race);
-      socket.emit('race:join-room', data.race.id);
       if (withAI) {
+        enterRaceDisplay();
         const { data: aiData } = await api.post(`/games/apex-gt/races/${data.race.id}/start-ai`, { count: aiCount });
         setRace(aiData.race);
+        setRaceState(aiData.race.state);
+        setCountdown(3);
         toast('AI race started!', 'success');
       } else {
         toast('Race created. Ready up, then start when you are set.', 'success');
@@ -110,7 +154,6 @@ export default function ApexGT() {
     try {
       const { data } = await api.post(`/games/apex-gt/races/${id}/join`);
       setRace(data.race);
-      socket.emit('race:join-room', id);
       toast('Joined the race!', 'success');
     } catch (e) { toast(errMsg(e), 'error'); } finally { setBusy(false); }
   };
@@ -126,18 +169,25 @@ export default function ApexGT() {
   };
 
   const start = async () => {
+    enterRaceDisplay();
     setBusy(true);
     try {
-      await api.post(`/games/apex-gt/races/${race.id}/start`);
+      const { data } = await api.post(`/games/apex-gt/races/${race.id}/start`);
+      setRace(data.race);
+      setRaceState(data.race.state);
+      setCountdown(3);
     } catch (e) { toast(errMsg(e), 'error'); } finally { setBusy(false); }
   };
 
   const startWithAI = async () => {
+    enterRaceDisplay();
     setBusy(true);
     setAiModal(false);
     try {
       const { data } = await api.post(`/games/apex-gt/races/${race.id}/start-ai`, { count: aiCount });
       setRace(data.race);
+      setRaceState(data.race.state);
+      setCountdown(3);
       toast('AI racers added! Starting...', 'success');
     } catch (e) { toast(errMsg(e), 'error'); } finally { setBusy(false); }
   };
@@ -191,6 +241,7 @@ export default function ApexGT() {
       setRaceResult(data);
       toast('Race finished!', 'success');
       refresh();
+      returnToLobbyRef.current = window.setTimeout(returnToLobby, 5000);
     };
 
     const onLap = (data) => {
@@ -225,35 +276,9 @@ export default function ApexGT() {
 
   // Initialize 3D scene when canvas is available and race starts
   useEffect(() => {
-    if (raceState === 'STARTED' && canvasRef.current && trackPointsRef.current.length > 0) {
-      initializeRaceScene(trackPointsRef.current, lapsRef.current);
-    }
-
-    // Cleanup on race end or component unmount
-    return () => {
-      if (raceState === 'FINISHED' || raceState === 'WALLOON') {
-        cancelAnimationFrame(animationRef.current);
-        if (sceneRef.current) {
-          Object.values(carMeshesRef.current).forEach(mesh => {
-            sceneRef.current.remove(mesh);
-            mesh.traverse(obj => {
-              if (obj.geometry) obj.geometry.dispose();
-              if (obj.material) {
-                if (Array.isArray(obj.material)) {
-                  obj.material.forEach(m => m.dispose());
-                } else {
-                  obj.material.dispose();
-                }
-              }
-            });
-          });
-          carMeshesRef.current = {};
-        }
-        rendererRef.current?.dispose();
-        rendererRef.current?.forceContextLoss?.();
-      }
-    };
-  }, [raceState, race]);
+    if (raceState !== 'STARTED' || !canvasRef.current || trackPointsRef.current.length === 0) return undefined;
+    return initializeRaceScene(trackPointsRef.current, lapsRef.current);
+  }, [raceState, race, initializeRaceScene]);
 
   // ========== 3D SCENE INITIALIZATION ==========
   const initializeRaceScene = useCallback((trackPoints, laps) => {
@@ -263,7 +288,7 @@ export default function ApexGT() {
     lapsRef.current = laps;
 
     // Create Three.js scene
-    const { scene, trackMesh, sun } = createRaceScene(trackPoints, getVenueTheme(race?.venue));
+    const { scene } = createRaceScene(trackPoints, getVenueTheme(race?.venue));
     sceneRef.current = scene;
 
     // Renderer
@@ -331,46 +356,36 @@ export default function ApexGT() {
     return () => {
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationRef.current);
-
-      // Cleanup
-      Object.values(carMeshesRef.current).forEach(mesh => {
-        scene.remove(mesh);
-        mesh.traverse(obj => {
-          if (obj.geometry) obj.geometry.dispose();
-          if (obj.material) {
-            if (Array.isArray(obj.material)) {
-              obj.material.forEach(m => m.dispose());
-            } else {
-              obj.material.dispose();
-            }
-          }
-        });
+      scene.traverse((obj) => {
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) {
+          if (Array.isArray(obj.material)) obj.material.forEach((material) => material.dispose());
+          else obj.material.dispose();
+        }
       });
       carMeshesRef.current = {};
-
-      if (trackMesh) {
-        trackMesh.geometry.dispose();
-        trackMesh.material.dispose();
-      }
-
-      rendererRef.current?.dispose();
-      rendererRef.current?.forceContextLoss?.();
+      renderer.dispose();
+      sceneRef.current = null;
+      rendererRef.current = null;
+      cameraRef.current = null;
+      cameraRigRef.current = null;
     };
   }, [race]);
 
   // ========== RENDER LOOP ==========
   const animate = useCallback(() => {
     if (!sceneRef.current || !rendererRef.current || !cameraRef.current || !cameraRigRef.current) return;
+    const frameState = frameStateRef.current;
 
     const now = performance.now();
     const dt = Math.min(0.1, (now - lastFrameRef.current) / 1000);
     lastFrameRef.current = now;
 
     // Get input and send to server
-    if (raceState === 'STARTED') {
+    if (frameState.raceState === 'STARTED') {
       let input = { steer: 0, accelerate: 0, brake: 0, nitro: false };
 
-      if (inputMode === 'auto' || inputMode === 'keyboard') {
+      if (frameState.inputMode === 'auto' || frameState.inputMode === 'keyboard') {
         const kb = getKeyboardInput();
         input.steer += kb.steer;
         input.accelerate = Math.max(input.accelerate, kb.accelerate);
@@ -378,7 +393,15 @@ export default function ApexGT() {
         input.nitro = input.nitro || kb.nitro;
       }
 
-      if ((inputMode === 'auto' || inputMode === 'gamepad') && gamepadConnected) {
+      if (frameState.inputMode === 'auto' || frameState.inputMode === 'touch') {
+        const touch = touchInputRef.current;
+        input.steer += touch.steer;
+        input.accelerate = Math.max(input.accelerate, touch.accelerate);
+        input.brake = Math.max(input.brake, touch.brake);
+        input.nitro = input.nitro || touch.nitro;
+      }
+
+      if ((frameState.inputMode === 'auto' || frameState.inputMode === 'gamepad') && frameState.gamepadConnected) {
         const gp = getGamepadInput();
         // Gamepad takes precedence for steer if significant input
         if (Math.abs(gp.steer) > 0.1) input.steer = gp.steer;
@@ -389,24 +412,24 @@ export default function ApexGT() {
 
       // Send input to server
       socket.emit('race:input', {
-        raceId: race?.id,
+        raceId: frameState.race?.id,
         ...input
       });
     }
 
     // Update car positions from server data (interpolated)
     Object.entries(carMeshesRef.current).forEach(([userId, carMesh]) => {
-      const serverCar = serverCars.find(c => c.user === userId);
+      const serverCar = frameState.serverCars.find(c => c.user === userId);
       if (serverCar) {
         updateCarMesh(carMesh, serverCar, dt);
       }
     });
 
     // Update camera to follow my car
-    if (myCarData && cameraRigRef.current) {
-      const targetX = myCarData.x;
-      const targetZ = myCarData.z;
-      const targetAngle = myCarData.angle;
+    if (frameState.myCarData && cameraRigRef.current) {
+      const targetX = frameState.myCarData.x;
+      const targetZ = frameState.myCarData.z;
+      const targetAngle = frameState.myCarData.angle;
 
       // Smooth camera follow
       const lerpFactor = 0.1;
@@ -414,12 +437,12 @@ export default function ApexGT() {
       cameraRigRef.current.position.z += (targetZ - cameraRigRef.current.position.z) * lerpFactor;
 
       // Camera height based on speed
-      const targetHeight = 3 + (myCarData.speed / 120) * 2;
+      const targetHeight = 3 + (frameState.myCarData.speed / 120) * 2;
       cameraRigRef.current.position.y += (targetHeight - cameraRigRef.current.position.y) * 0.05;
 
       // Camera rotation - look at car with offset
       cameraRigRef.current.rotation.y += ((targetAngle - Math.PI / 2) - cameraRigRef.current.rotation.y) * 0.05;
-    } else if (raceState === 'STARTED' && trackPointsRef.current.length > 0) {
+    } else if (frameState.raceState === 'STARTED' && trackPointsRef.current.length > 0) {
       // Fallback camera at start line until we get car data
       const center = trackPointsRef.current[0];
       cameraRigRef.current.position.x += (center.x - cameraRigRef.current.position.x) * 0.05;
@@ -429,7 +452,7 @@ export default function ApexGT() {
     }
 
     // Countdown camera (before race starts)
-    if (raceState === 'COUNTDOWN' && countdown !== null) {
+    if (frameState.raceState === 'COUNTDOWN' && frameState.countdown !== null) {
       // Show track overview
       if (trackPointsRef.current.length > 0) {
         const center = trackPointsRef.current[0];
@@ -441,7 +464,7 @@ export default function ApexGT() {
     // Force render even if no cars yet
     rendererRef.current.render(sceneRef.current, cameraRef.current);
     animationRef.current = requestAnimationFrame(animate);
-  }, [raceState, countdown, race, serverCars, myCarData, inputMode, gamepadConnected, getKeyboardInput, getGamepadInput, socket]);
+  }, [getKeyboardInput, getGamepadInput, socket]);
 
   // ========== HELPER FUNCTIONS ==========
   const getVenueTheme = (venueId) => {
@@ -536,7 +559,7 @@ export default function ApexGT() {
 
             {/* 3D Canvas */}
             {raceState !== 'WALLOON' && (
-              <div className="relative aspect-video rounded-xl overflow-hidden bg-ink border border-white/10" style={{ minHeight: '300px' }}>
+              <div className="race-stage race-stage-active relative aspect-video rounded-xl overflow-hidden bg-ink border border-white/10" style={{ minHeight: '300px' }}>
                 <canvas
                   ref={canvasRef}
                   className="w-full h-full block"
@@ -639,17 +662,17 @@ export default function ApexGT() {
                         ))}
                       </div>
 
-                      <button className="btn btn-ghost w-full" onClick={() => {
-                        setRace(null);
-                        setRaceResult(null);
-                        setRaceState('WALLOON');
-                        setCountdown(null);
-                        refresh();
-                      }}>
+                      <button className="btn btn-ghost w-full" onClick={returnToLobby}>
                         Back to Lobby
                       </button>
                     </motion.div>
                   </div>
+                )}
+                {raceState === 'STARTED' && (
+                  <TouchControls
+                    onInput={(input) => { touchInputRef.current = input; }}
+                    enabled
+                  />
                 )}
               </div>
             )}
@@ -769,15 +792,6 @@ export default function ApexGT() {
 
       <ControlGuide open={showControls} onClose={() => setShowControls(false)} />
 
-      {/* Touch Controls */}
-      {raceState === 'STARTED' && (
-        <TouchControls
-          onInput={(input) => {
-            // Input is sent in animate loop
-          }}
-          enabled={true}
-        />
-      )}
     </div>
   );
 }

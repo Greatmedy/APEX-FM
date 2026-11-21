@@ -26,95 +26,64 @@ export function createRaceScene(trackPoints, theme = 'highway') {
   ground.receiveShadow = true;
   scene.add(ground);
 
-  // Simple oval/rounded-rectangle track
-  const trackWidth = 24;
-  const trackRadius = 200;
-  const straightLength = 300;
-
-  // Track as a series of connected segments
   const trackGroup = new THREE.Group();
+  const centerline = trackPoints.slice(0, -1);
+  const trackWidth = centerline[0]?.width || 24;
+  const shoulderMat = new THREE.MeshLambertMaterial({ color: colors.shoulder, side: THREE.DoubleSide });
+  const roadMat = new THREE.MeshLambertMaterial({ color: colors.road, side: THREE.DoubleSide });
+  const shoulder = new THREE.Mesh(createTrackStrip(centerline, trackWidth + 16), shoulderMat);
+  shoulder.position.y = 0.01;
+  shoulder.receiveShadow = true;
+  trackGroup.add(shoulder);
 
-  // Main track surface - flat ring
-  const trackGeo = new THREE.RingGeometry(trackRadius - trackWidth/2, trackRadius + trackWidth/2, 64);
-  const trackMat = new THREE.MeshLambertMaterial({
-    color: colors.road,
-    side: THREE.DoubleSide
+  const road = new THREE.Mesh(createTrackStrip(centerline, trackWidth), roadMat);
+  road.position.y = 0.02;
+  road.receiveShadow = true;
+  trackGroup.add(road);
+
+  const dashPositions = [];
+  centerline.forEach((point, i) => {
+    const next = centerline[(i + 1) % centerline.length];
+    dashPositions.push(
+      point.x + (next.x - point.x) * 0.2, 0.04, point.z + (next.z - point.z) * 0.2,
+      point.x + (next.x - point.x) * 0.55, 0.04, point.z + (next.z - point.z) * 0.55
+    );
   });
-  const trackRing = new THREE.Mesh(trackGeo, trackMat);
-  trackRing.rotation.x = -Math.PI / 2;
-  trackRing.position.y = 0.02;
-  trackRing.receiveShadow = true;
-  trackGroup.add(trackRing);
-
-  // Inner shoulder
-  const innerShoulderGeo = new THREE.RingGeometry(trackRadius - trackWidth/2 - 8, trackRadius - trackWidth/2, 64);
-  const shoulderMat = new THREE.MeshLambertMaterial({
-    color: colors.shoulder,
-    side: THREE.DoubleSide
-  });
-  const innerShoulder = new THREE.Mesh(innerShoulderGeo, shoulderMat);
-  innerShoulder.rotation.x = -Math.PI / 2;
-  innerShoulder.position.y = 0.01;
-  innerShoulder.receiveShadow = true;
-  trackGroup.add(innerShoulder);
-
-  // Outer shoulder
-  const outerShoulderGeo = new THREE.RingGeometry(trackRadius + trackWidth/2, trackRadius + trackWidth/2 + 8, 64);
-  const outerShoulder = new THREE.Mesh(outerShoulderGeo, shoulderMat);
-  outerShoulder.rotation.x = -Math.PI / 2;
-  outerShoulder.position.y = 0.01;
-  outerShoulder.receiveShadow = true;
-  trackGroup.add(outerShoulder);
-
-  // Center line (dashed) - using thin rings
-  for (let i = 0; i < 32; i++) {
-    if (i % 2 === 0) continue; // Dashed
-    const lineGeo = new THREE.RingGeometry(trackRadius - 0.5, trackRadius + 0.5, 32, 1, i * Math.PI / 16, Math.PI / 16);
-    const lineMat = new THREE.MeshBasicMaterial({
-      color: colors.line,
-      side: THREE.DoubleSide,
-      transparent: true,
-      opacity: 0.8
-    });
-    const line = new THREE.Mesh(lineGeo, lineMat);
-    line.rotation.x = -Math.PI / 2;
-    line.position.y = 0.03;
-    trackGroup.add(line);
-  }
-
+  const dashGeometry = new THREE.BufferGeometry();
+  dashGeometry.setAttribute('position', new THREE.Float32BufferAttribute(dashPositions, 3));
+  trackGroup.add(new THREE.LineSegments(dashGeometry, new THREE.LineBasicMaterial({ color: colors.line })));
   scene.add(trackGroup);
 
-  // Start/finish line
-  const startLineGeo = new THREE.BoxGeometry(trackWidth + 4, 0.1, 1);
-  const startLineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  const startLine = new THREE.Mesh(startLineGeo, startLineMat);
-  startLine.position.set(trackRadius, 0.04, 0);
-  startLine.rotation.y = Math.PI / 2;
-  scene.add(startLine);
-
-  // Checkered pattern
-  for (let i = 0; i < 12; i++) {
-    const checker = new THREE.Mesh(
-      new THREE.BoxGeometry((trackWidth + 4) / 12, 0.12, 1),
-      new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0x000000 : 0xffffff })
-    );
-    checker.position.set(
-      trackRadius,
-      0.05,
-      (i - 5.5) * (trackWidth + 4) / 12
-    );
-    checker.rotation.y = Math.PI / 2;
-    scene.add(checker);
+  if (centerline.length > 1) {
+    const start = centerline[0];
+    const next = centerline[1];
+    const tangentLength = Math.hypot(next.x - start.x, next.z - start.z) || 1;
+    const nx = -(next.z - start.z) / tangentLength;
+    const nz = (next.x - start.x) / tangentLength;
+    const halfWidth = trackWidth / 2;
+    const checkerCount = 12;
+    for (let i = 0; i < checkerCount; i++) {
+      const checker = new THREE.Mesh(
+        new THREE.BoxGeometry(trackWidth / checkerCount, 0.12, 1),
+        new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0x000000 : 0xffffff })
+      );
+      checker.position.set(start.x + nx * (i - 5.5) * (trackWidth / checkerCount), 0.05, start.z + nz * (i - 5.5) * (trackWidth / checkerCount));
+      checker.rotation.y = -Math.atan2(nz, nx);
+      scene.add(checker);
+    }
   }
 
-  // Trackside objects (simple trees/buildings)
   const rng = mulberry32(hashStr(theme + trackPoints.length));
-  for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 12) {
+  const sceneryStep = Math.max(1, Math.floor(centerline.length / 24));
+  for (let i = 0; i < centerline.length; i += sceneryStep) {
     if (rng() < 0.4) continue;
-
-    const distance = trackRadius + trackWidth/2 + 10 + rng() * 20;
-    const x = Math.cos(angle) * distance;
-    const z = Math.sin(angle) * distance;
+    const point = centerline[i];
+    const next = centerline[(i + 1) % centerline.length];
+    const tangentLength = Math.hypot(next.x - point.x, next.z - point.z) || 1;
+    const side = rng() < 0.5 ? -1 : 1;
+    const distance = trackWidth / 2 + 10 + rng() * 20;
+    const x = point.x - ((next.z - point.z) / tangentLength) * distance * side;
+    const z = point.z + ((next.x - point.x) / tangentLength) * distance * side;
 
     if (theme === 'urban' && rng() < 0.7) {
       // Building
@@ -123,7 +92,7 @@ export function createRaceScene(trackPoints, theme = 'highway') {
         new THREE.MeshLambertMaterial({ color: 0x6a5a4a })
       );
       building.position.set(x, 6 + rng() * 5, z);
-      building.rotation.y = angle + (rng() - 0.5) * 0.5;
+      building.rotation.y = Math.atan2(next.z - point.z, next.x - point.x) + (rng() - 0.5) * 0.5;
       building.castShadow = true;
       building.receiveShadow = true;
       scene.add(building);
@@ -178,6 +147,36 @@ export function createRaceScene(trackPoints, theme = 'highway') {
   scene.add(skybox);
 
   return { scene, trackGroup, sun };
+}
+
+function createTrackStrip(points, width) {
+  const count = points.length;
+  const positions = [];
+  const indices = [];
+
+  points.forEach((point, i) => {
+    const previous = points[(i - 1 + count) % count];
+    const next = points[(i + 1) % count];
+    const dx = next.x - previous.x;
+    const dz = next.z - previous.z;
+    const length = Math.hypot(dx, dz) || 1;
+    const halfWidth = width / 2;
+    const nx = -dz / length * halfWidth;
+    const nz = dx / length * halfWidth;
+    positions.push(point.x - nx, 0, point.z - nz, point.x + nx, 0, point.z + nz);
+  });
+
+  for (let i = 0; i < count; i++) {
+    const current = i * 2;
+    const next = ((i + 1) % count) * 2;
+    indices.push(current, next, current + 1, next, next + 1, current + 1);
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
 }
 
 // Car mesh - simple but recognizable
